@@ -8,6 +8,7 @@ import Button from '../components/atoms/Button';
 import Input from '../components/atoms/Input';
 import { Plus, MessageCircle, User as UserIcon } from 'lucide-react';
 import ThemeToggle from '../components/atoms/ThemeToggle';
+import { API_URL } from '../config';
 import './ChatLayout.css';
 
 const ChatLayout = () => {
@@ -28,7 +29,7 @@ const ChatLayout = () => {
 
     const fetchChats = async () => {
         try {
-            const res = await fetch(`http://localhost:3000/api/chats/${user._id}`);
+            const res = await fetch(`${API_URL}/api/chats/${user._id}`);
             const data = await res.json();
 
             const formattedChats = data.map(chat => {
@@ -74,7 +75,7 @@ const ChatLayout = () => {
         socket.emit('join_room', chat.id);
 
         try {
-            const res = await fetch(`http://localhost:3000/api/chats/${chat.id}/messages`);
+            const res = await fetch(`${API_URL}/api/chats/${chat.id}/messages`);
             const data = await res.json();
             const formattedMessages = data.map(msg => ({
                 id: msg._id,
@@ -101,7 +102,7 @@ const ChatLayout = () => {
     const handleCreateChat = async (e) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://localhost:3000/api/chats', {
+            const res = await fetch(`${API_URL}/api/chats`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -135,7 +136,7 @@ const ChatLayout = () => {
         if (!activeChat) return;
         if (window.confirm('Are you sure you want to clear this chat?')) {
             try {
-                await fetch(`http://localhost:3000/api/chats/${activeChat.id}/messages`, {
+                await fetch(`${API_URL}/api/chats/${activeChat.id}/messages`, {
                     method: 'DELETE'
                 });
                 setMessages([]);
@@ -150,7 +151,7 @@ const ChatLayout = () => {
         if (!activeChat) return;
         if (window.confirm('Block this user? You will not receive messages from them.')) {
             try {
-                await fetch('http://localhost:3000/api/chats/block', {
+                await fetch(`${API_URL}/api/chats/block`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

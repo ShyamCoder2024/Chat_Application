@@ -1,13 +1,16 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { API_URL } from '../config';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
+
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('btween_user');
+        const storedUser = localStorage.getItem('user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
@@ -16,17 +19,16 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (phone, password) => {
         try {
-            const response = await fetch('http://localhost:3000/api/auth/login', {
+            const res = await fetch(`${API_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone, password })
             });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
 
             setUser(data.user);
-            localStorage.setItem('btween_user', JSON.stringify(data.user));
+            localStorage.setItem('user', JSON.stringify(data.user));
             return data.user;
         } catch (err) {
             throw err;
@@ -35,17 +37,16 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (phone, password, name, profilePic) => {
         try {
-            const response = await fetch('http://localhost:3000/api/auth/register', {
+            const res = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phone, password, name, profilePic })
             });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
 
             setUser(data.user);
-            localStorage.setItem('btween_user', JSON.stringify(data.user));
+            localStorage.setItem('user', JSON.stringify(data.user));
             return data.user;
         } catch (err) {
             throw err;
@@ -54,33 +55,29 @@ export const AuthProvider = ({ children }) => {
 
     const updateProfile = async (updates) => {
         try {
-            const response = await fetch(`http://localhost:3000/api/auth/profile/${user._id}`, {
+            const res = await fetch(`${API_URL}/api/auth/update`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updates)
+                body: JSON.stringify({ userId: user._id, ...updates })
             });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
 
             setUser(data.user);
-            localStorage.setItem('btween_user', JSON.stringify(data.user));
-            return data.user;
+            localStorage.setItem('user', JSON.stringify(data.user));
         } catch (err) {
-            throw err;
+            console.error(err);
         }
     };
 
     const logout = () => {
         setUser(null);
-        localStorage.removeItem('btween_user');
+        localStorage.removeItem('user');
     };
 
     return (
         <AuthContext.Provider value={{ user, login, register, logout, updateProfile, loading }}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };
-
-export const useAuth = () => useContext(AuthContext);

@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { API_URL } from '../config';
 
-const SocketContext = createContext(null);
+const SocketContext = createContext();
+
+export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
@@ -11,7 +14,7 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-            const newSocket = io('http://localhost:3000');
+            const newSocket = io(API_URL);
             setSocket(newSocket);
 
             newSocket.emit('login', user._id);
