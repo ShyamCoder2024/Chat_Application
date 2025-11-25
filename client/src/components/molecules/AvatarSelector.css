@@ -1,0 +1,38 @@
+.avatar-selector {
+    width: 100%;
+    margin-bottom: var(--spacing-xl);
+}
+
+.avatar-selector-label {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+    font-size: 14px;
+}
+
+.avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: var(--spacing-md);
+    justify-items: center;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: var(--spacing-sm);
+}
+
+.avatar-option {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.avatar-option:hover {
+    transform: scale(1.1);
+}
+
+.avatar-option.selected {
+    border-color: var(--color-sage);
+    background-color: rgba(168, 184, 156, 0.2);
+}

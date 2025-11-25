@@ -1,0 +1,35 @@
+.setup-container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-cream);
+    padding: var(--spacing-xl);
+}
+
+.setup-card {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--color-white);
+    padding: var(--spacing-4xl) var(--spacing-2xl);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+
+.setup-title {
+    font-size: 28px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.setup-subtitle {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-3xl);
+}
+
+.setup-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}

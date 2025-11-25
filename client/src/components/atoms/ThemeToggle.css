@@ -1,0 +1,50 @@
+.theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-full);
+    transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.toggle-track {
+    width: 52px;
+    height: 28px;
+    background-color: var(--text-secondary);
+    border-radius: var(--radius-full);
+    position: relative;
+    transition: background-color 0.5s ease;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+}
+
+/* ... (middle content unchanged) ... */
+
+.toggle-thumb {
+    width: 24px;
+    height: 24px;
+    background-color: var(--color-white);
+    border-radius: 50%;
+    position: absolute;
+    left: 2px;
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle.dark .toggle-thumb {
+    transform: translateX(24px) rotate(360deg);
+    color: var(--color-deep-black);
+}
+
+.theme-toggle:hover .toggle-thumb {
+    transform: scale(1.05);
+}
+
+.theme-toggle.dark:hover .toggle-thumb {
+    transform: translateX(24px) rotate(360deg) scale(1.05);
+}

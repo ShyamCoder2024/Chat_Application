@@ -1,0 +1,78 @@
+.login-container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-cream);
+    padding: var(--spacing-xl);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--color-white);
+    padding: var(--spacing-4xl) var(--spacing-2xl);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+
+.app-name {
+    font-size: 36px;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--color-sage) 0%, var(--color-warm-yellow) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-family: var(--font-heading);
+    letter-spacing: -0.5px;
+}
+
+.app-subtitle {
+    color: var(--text-tertiary);
+    font-size: 14px;
+    margin-bottom: var(--spacing-3xl);
+}
+
+
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.login-error {
+    background-color: rgba(255, 107, 107, 0.1);
+    color: var(--status-error);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-lg);
+    font-size: 14px;
+}
+
+.auth-toggle {
+    margin-top: var(--spacing-lg);
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.auth-toggle-btn {
+    padding: 0 4px;
+    height: auto;
+    font-weight: 600;
+    color: var(--color-sage);
+}
+
+.auth-toggle-btn:hover {
+    background: none;
+    text-decoration: underline;
+}
+
+.form-actions-row {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.flex-1 {
+    flex: 1;
+}

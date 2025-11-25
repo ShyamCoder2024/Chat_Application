@@ -1,0 +1,86 @@
+.profile-section {
+    height: 100%;
+    background-color: var(--color-cream);
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-content {
+    padding: var(--spacing-3xl) var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+}
+
+.profile-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: var(--spacing-3xl);
+    text-align: center;
+    width: 100%;
+}
+
+.profile-info-display {
+    margin-top: var(--spacing-lg);
+}
+
+.profile-name {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+.profile-phone {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.profile-bio {
+    color: var(--text-primary);
+    font-size: 16px;
+    max-width: 300px;
+}
+
+.profile-form {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.profile-actions {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.full-width {
+    width: 100%;
+}
+
+.logout-btn {
+    color: var(--status-error);
+}
+
+.logout-btn:hover {
+    background-color: rgba(255, 107, 107, 0.1);
+    color: var(--status-error);
+}

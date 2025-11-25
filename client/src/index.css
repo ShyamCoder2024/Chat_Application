@@ -1,0 +1,173 @@
+:root {
+  /* Light Mode Colors (Default) */
+  --color-sage: #A8B89C;
+  --color-warm-yellow: #F4DE79;
+  --color-soft-blue: #BCD3E8;
+  --color-soft-pink: #F4BDD0;
+  --color-cream: #F9F5ED;
+  --color-white: #FFFFFF;
+  --color-deep-black: #000000;
+  --color-bg-secondary: #F0F0F0;
+
+  /* Text Colors */
+  --text-primary: #1A1A1A;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --text-disabled: #CCCCCC;
+  --text-inverse: #FFFFFF;
+
+  /* Status Colors */
+  --status-online: #4CAF50;
+  --status-success: #A8B89C;
+  --status-warning: #F4DE79;
+  --status-error: #FF6B6B;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+  --spacing-4xl: 48px;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
+  --radius-full: 9999px;
+
+  /* Fonts */
+  --font-primary: 'Nimbus Sans', 'Inter', system-ui, sans-serif;
+  --font-heading: 'PP Mori', 'Space Grotesk', system-ui, sans-serif;
+
+  /* Shadows */
+  --shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0px 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0px 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Dark Mode Overrides */
+[data-theme='dark'] {
+  --color-sage: #8F9E84;
+  --color-warm-yellow: #D4BE59;
+  --color-cream: #121212;
+  --color-white: #1E1E1E;
+  --color-deep-black: #FFFFFF;
+  --color-bg-secondary: #2A2A2A;
+
+  --text-primary: #E0E0E0;
+  --text-secondary: #A0A0A0;
+  --text-tertiary: #666666;
+  --text-disabled: #444444;
+  --text-inverse: #121212;
+
+  --shadow-sm: 0px 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0px 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0px 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
+}
+
+body {
+  font-family: var(--font-primary);
+  background-color: var(--color-cream);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-pop-in {
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+button {
+  font-family: var(--font-primary);
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+input {
+  font-family: var(--font-primary);
+  outline: none;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
