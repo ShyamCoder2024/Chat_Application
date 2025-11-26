@@ -7,9 +7,10 @@ import TypingIndicator from '../atoms/TypingIndicator';
 import ChatMenu from '../molecules/ChatMenu';
 import Input from '../atoms/Input';
 import Button from '../atoms/Button';
+import { formatLastSeen, formatMessageDate } from '../../utils/dateUtils';
 import './ChatWindow.css';
 
-const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline }) => {
+const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen, onReact }) => {
     const [newMessage, setNewMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
@@ -43,11 +44,19 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         socket.on('typing', handleTyping);
         socket.on('stop_typing', handleStopTyping);
 
+        // Mark messages as read when opening chat
+        if (messages.length > 0) {
+            const unreadMessages = messages.some(m => !m.read && m.senderId !== currentUserId);
+            if (unreadMessages) {
+                socket.emit('message_read', { chatId: chat.id, userId: currentUserId });
+            }
+        }
+
         return () => {
             socket.off('typing', handleTyping);
             socket.off('stop_typing', handleStopTyping);
         };
-    }, [socket, chat.id, currentUserId]);
+    }, [socket, chat.id, currentUserId, messages]);
 
     const handleInputChange = (e) => {
         setNewMessage(e.target.value);
@@ -81,11 +90,40 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         }
     };
 
+    const renderMessages = () => {
+        const result = [];
+        let lastDate = null;
+
+        messages.forEach((msg, index) => {
+            const msgDate = new Date(msg.createdAt || Date.now()).toDateString();
+
+            if (msgDate !== lastDate) {
+                result.push(
+                    <div key={`date-${index}`} className="date-separator">
+                        <span>{formatMessageDate(msg.createdAt || Date.now())}</span>
+                    </div>
+                );
+                lastDate = msgDate;
+            }
+
+            result.push(
+                <MessageBubble
+                    key={msg.id}
+                    message={msg}
+                    isSent={msg.senderId === currentUserId}
+                    onReact={onReact}
+                />
+            );
+        });
+
+        return result;
+    };
+
     return (
         <div className="chat-window">
             <Header
                 title={chat.name}
-                subtitle={isTyping ? 'Typing...' : (isOnline ? 'Online' : 'Offline')}
+                subtitle={isTyping ? 'Typing...' : (isOnline ? 'Online' : formatLastSeen(lastSeen))}
                 onBack={onBack}
                 actions={
                     <ChatMenu
@@ -97,14 +135,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             />
 
             <div className="messages-area">
-                {messages.map((msg) => (
-                    <MessageBubble
-                        key={msg.id}
-                        content={msg.content}
-                        time={msg.time}
-                        isSent={msg.senderId === currentUserId}
-                    />
-                ))}
+                {renderMessages()}
                 {isTyping && <TypingIndicator />}
                 <div ref={messagesEndRef} />
             </div>

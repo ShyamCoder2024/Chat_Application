@@ -41,6 +41,7 @@ const ChatLayout = () => {
                     name: otherUser?.name || otherUser?.phone || 'Unknown User',
                     avatar: otherUser?.profilePic,
                     otherUserId: otherUser?._id,
+                    lastSeen: otherUser?.lastSeen,
                     lastMessage: chat.lastMessage?.content || 'No messages yet',
                     time: chat.lastMessage?.timestamp ? new Date(chat.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
                     unreadCount: chat.unreadCounts ? (chat.unreadCounts[user._id] || 0) : 0
@@ -166,7 +167,9 @@ const ChatLayout = () => {
                 id: msg._id,
                 content: msg.content,
                 senderId: msg.senderId,
-                time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                status: msg.status,
+                reactions: msg.reactions
             }));
             setMessages(formattedMessages);
         } catch (err) {
@@ -204,6 +207,36 @@ const ChatLayout = () => {
             content
         });
     };
+
+    const handleReaction = (messageId, emoji) => {
+        if (!socket) return;
+        socket.emit('add_reaction', { messageId, userId: user._id, emoji });
+    };
+
+    // Listen for status updates and reactions
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleStatusUpdate = ({ messageId, status }) => {
+            setMessages(prev => prev.map(msg =>
+                msg.id === messageId ? { ...msg, status } : msg
+            ));
+        };
+
+        const handleReactionUpdated = ({ messageId, reactions }) => {
+            setMessages(prev => prev.map(msg =>
+                msg.id === messageId ? { ...msg, reactions } : msg
+            ));
+        };
+
+        socket.on('message_status_update', handleStatusUpdate);
+        socket.on('reaction_updated', handleReactionUpdated);
+
+        return () => {
+            socket.off('message_status_update', handleStatusUpdate);
+            socket.off('reaction_updated', handleReactionUpdated);
+        };
+    }, [socket]);
 
     const handleSearchUser = async (e) => {
         e.preventDefault();
@@ -251,7 +284,8 @@ const ChatLayout = () => {
                 id: data._id,
                 name: otherUser?.name || otherUser?.phone || 'Unknown User',
                 avatar: otherUser?.profilePic,
-                otherUserId: otherUser?._id
+                otherUserId: otherUser?._id,
+                lastSeen: otherUser?.lastSeen
             });
         } catch (err) {
             console.error(err);
@@ -393,6 +427,8 @@ const ChatLayout = () => {
                         onBlockUser={handleBlockUser}
                         onVisitProfile={handleVisitProfile}
                         isOnline={onlineUsers.has(activeChat.otherUserId)}
+                        lastSeen={activeChat.lastSeen}
+                        onReact={handleReaction}
                     />
                 ) : (
                     <div className="empty-state animate-fade-in">

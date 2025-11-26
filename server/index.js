@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const Message = require('./models/Message');
 const Chat = require('./models/Chat');
+const User = require('./models/User');
 
 const app = express();
 const server = http.createServer(app);
@@ -116,6 +117,79 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('message_delivered', async ({ messageId, userId }) => {
+    try {
+      const message = await Message.findByIdAndUpdate(messageId, { status: 'delivered' }, { new: true });
+      if (message) {
+        const senderId = message.senderId.toString();
+        const senderSockets = onlineUsers.get(senderId);
+        if (senderSockets) {
+          senderSockets.forEach(socketId => {
+            io.to(socketId).emit('message_status_update', { messageId, status: 'delivered' });
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error updating delivery status:', err);
+    }
+  });
+
+  socket.on('message_read', async ({ messageId, userId, chatId }) => {
+    try {
+      // Update specific message or all unread messages in chat
+      if (messageId) {
+        await Message.findByIdAndUpdate(messageId, { status: 'read', read: true });
+        // Notify sender
+        const message = await Message.findById(messageId);
+        if (message) {
+          const senderId = message.senderId.toString();
+          const senderSockets = onlineUsers.get(senderId);
+          if (senderSockets) {
+            senderSockets.forEach(socketId => {
+              io.to(socketId).emit('message_status_update', { messageId, status: 'read' });
+            });
+          }
+        }
+      } else if (chatId) {
+        // Mark all messages in chat as read
+        await Message.updateMany(
+          { chatId, senderId: { $ne: userId }, read: false },
+          { status: 'read', read: true }
+        );
+        // Notify sender (broadcasting to chat room might be easier here, or find sender)
+        // For simplicity, we'll rely on the existing 'read' endpoint logic or client refresh for bulk updates
+        // But let's emit a bulk event to the room
+        socket.to(chatId).emit('messages_read_bulk', { chatId, readerId: userId });
+      }
+    } catch (err) {
+      console.error('Error updating read status:', err);
+    }
+  });
+
+  socket.on('add_reaction', async ({ messageId, userId, emoji }) => {
+    try {
+      const message = await Message.findById(messageId);
+      if (message) {
+        // Remove existing reaction from this user if any
+        const existingReactionIndex = message.reactions.findIndex(r => r.userId.toString() === userId);
+        if (existingReactionIndex > -1) {
+          message.reactions.splice(existingReactionIndex, 1);
+        }
+        // Add new reaction
+        message.reactions.push({ userId, emoji });
+        await message.save();
+
+        // Broadcast to chat participants
+        // We need to find the chat to know who to notify, or just notify sender + receiver
+        // A simpler way is to emit to the chat room if we had rooms for chats.
+        // We do have `join_room`! So we can emit to the room.
+        io.to(message.chatId.toString()).emit('reaction_updated', { messageId, reactions: message.reactions });
+      }
+    } catch (err) {
+      console.error('Error adding reaction:', err);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
 
@@ -127,6 +201,10 @@ io.on('connection', (socket) => {
         // If no more sockets for this user, they are truly offline
         if (sockets.size === 0) {
           onlineUsers.delete(userId);
+
+          // Update lastSeen in DB
+          User.findByIdAndUpdate(userId, { lastSeen: new Date() }).catch(err => console.error('Error updating lastSeen:', err));
+
           io.emit('user_offline', userId);
           console.log(`User truly offline: ${userId}`);
         } else {

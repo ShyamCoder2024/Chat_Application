@@ -24,7 +24,7 @@ router.post('/', async (req, res) => {
             });
         }
 
-        const populatedChat = await Chat.findById(chat._id).populate('userIds', 'name phone profilePic');
+        const populatedChat = await Chat.findById(chat._id).populate('userIds', 'name phone profilePic lastSeen');
         res.json(populatedChat);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -37,7 +37,7 @@ router.get('/:userId', async (req, res) => {
         const chats = await Chat.find({
             userIds: { $in: [req.params.userId] }
         })
-            .populate('userIds', 'name phone profilePic')
+            .populate('userIds', 'name phone profilePic lastSeen')
             .sort({ updatedAt: -1 });
 
         res.json(chats);
