@@ -8,12 +8,6 @@ import './index.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AuthProvider>
-      <SocketProvider>
-        <SoundProvider>
-          <App />
-        </SoundProvider>
-      </SocketProvider>
-    </AuthProvider>
+    <App />
   </StrictMode>,
 )

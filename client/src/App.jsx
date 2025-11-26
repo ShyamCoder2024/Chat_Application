@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SoundProvider } from './context/SoundContext';
 import Login from './pages/Login';
 import ProfileSetup from './pages/ProfileSetup';
 import ChatLayout from './pages/ChatLayout';
@@ -24,21 +25,23 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <SocketProvider>
-          <Router>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/setup" element={
-                <ProtectedRoute>
-                  <ProfileSetup />
-                </ProtectedRoute>
-              } />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <ChatLayout />
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </Router>
+          <SoundProvider>
+            <Router>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/setup" element={
+                  <ProtectedRoute>
+                    <ProfileSetup />
+                  </ProtectedRoute>
+                } />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <ChatLayout />
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </Router>
+          </SoundProvider>
         </SocketProvider>
       </AuthProvider>
     </ThemeProvider>
