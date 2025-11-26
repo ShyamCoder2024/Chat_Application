@@ -14,8 +14,13 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Sort userIds to ensure consistency (always [A, B] where A < B)
-        const userIds = [currentUserId, targetUser._id].sort();
+        // Ensure ObjectIds are used for query
+        const mongoose = require('mongoose');
+        const currentId = new mongoose.Types.ObjectId(currentUserId);
+        const targetId = targetUser._id;
+
+        // Sort userIds to ensure consistency
+        const userIds = [currentId, targetId].sort();
 
         let chat = await Chat.findOne({
             userIds: { $all: userIds }
@@ -43,7 +48,24 @@ router.get('/:userId', async (req, res) => {
             .populate('userIds', 'firstName lastName phone profilePic lastSeen')
             .sort({ updatedAt: -1 });
 
-        res.json(chats);
+        // Deduplicate chats based on other user ID
+        const uniqueChats = [];
+        const seenUserIds = new Set();
+
+        for (const chat of chats) {
+            const otherUser = chat.userIds.find(u => u._id.toString() !== req.params.userId);
+            if (otherUser) {
+                if (!seenUserIds.has(otherUser._id.toString())) {
+                    seenUserIds.add(otherUser._id.toString());
+                    uniqueChats.push(chat);
+                }
+            } else {
+                // Keep chat if other user not found (shouldn't happen often)
+                uniqueChats.push(chat);
+            }
+        }
+
+        res.json(uniqueChats);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

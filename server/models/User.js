@@ -21,6 +21,9 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    name: { // Legacy field for backward compatibility
+        type: String
+    },
     bio: {
         type: String,
         default: ''
