@@ -6,11 +6,6 @@ const cors = require('cors');
 const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const cluster = require('cluster');
-// Limit to 4 workers max for free tier compatibility, or use available cores if less
-const numCPUs = Math.min(require('os').cpus().length, 4);
-const { setupMaster, setupWorker } = require("@socket.io/sticky");
-const { createAdapter, setupPrimary } = require("@socket.io/cluster-adapter");
 const msgpackParser = require("socket.io-msgpack-parser");
 require('dotenv').config();
 
@@ -22,278 +17,209 @@ const User = require('./models/User');
 
 const PORT = process.env.PORT || 3000;
 
-if (cluster.isPrimary) {
-  console.log(`Master ${process.pid} is running`);
+const app = express();
+const server = http.createServer(app);
 
-  const httpServer = http.createServer();
+// Trust proxy is required for Render/Heroku deployment
+app.set('trust proxy', 1);
 
-  // Setup sticky sessions
-  setupMaster(httpServer, {
-    loadBalancingMethod: "least-connection",
+// Middleware
+app.use(helmet());
+app.use(compression());
+app.use(cors());
+app.use(express.json());
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', limiter);
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/chats', chatRoutes);
+app.use('/api/users', require('./routes/users'));
+
+// Socket.io Setup
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all origins for deployment
+    methods: ["GET", "POST"]
+  },
+  parser: msgpackParser,
+  transports: ['websocket', 'polling'] // Force transports for better compatibility
+});
+
+const onlineUsers = new Map(); // userId -> Set<socketId>
+
+io.on('connection', (socket) => {
+  // console.log(`User connected: ${socket.id}`);
+
+  socket.on('login', (userId) => {
+    const id = userId.toString();
+
+    if (!onlineUsers.has(id)) {
+      onlineUsers.set(id, new Set());
+    }
+    const userSockets = onlineUsers.get(id);
+    userSockets.add(socket.id);
+
+    // Only emit user_online if this is their first connection
+    if (userSockets.size === 1) {
+      io.emit('user_online', id);
+    }
+
+    socket.emit('online_users', Array.from(onlineUsers.keys()));
   });
 
-  // Setup cluster adapter
-  setupPrimary();
-
-  httpServer.listen(PORT, () => {
-    console.log(`Master listening on port ${PORT}`);
+  socket.on('join_room', (chatId) => {
+    socket.join(chatId);
   });
 
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
-
-  cluster.on("exit", (worker) => {
-    console.log(`Worker ${worker.process.pid} died`);
-    cluster.fork();
-  });
-} else {
-  console.log(`Worker ${process.pid} started`);
-
-  const app = express();
-  const server = http.createServer(app);
-
-  // Trust proxy is required for Render/Heroku deployment
-  app.set('trust proxy', 1);
-
-  // Middleware
-  app.use(helmet());
-  app.use(compression());
-  app.use(cors());
-  app.use(express.json());
-
-  // Rate Limiting
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-  app.use('/api', limiter);
-
-  // Routes
-  app.use('/api/auth', authRoutes);
-  app.use('/api/chats', chatRoutes);
-  app.use('/api/users', require('./routes/users'));
-
-  // Socket.io Setup
-  const io = new Server(server, {
-    cors: {
-      origin: "*", // Allow all origins for deployment
-      methods: ["GET", "POST"]
-    },
-    parser: msgpackParser,
-    adapter: createAdapter()
+  socket.on('typing', (data) => {
+    socket.to(data.chatId).emit('typing', data);
   });
 
-  // Setup worker for sticky sessions
-  setupWorker(io);
+  socket.on('stop_typing', (data) => {
+    socket.to(data.chatId).emit('stop_typing', data);
+  });
 
-  const onlineUsers = new Map(); // userId -> Set<socketId>
+  socket.on('send_message', async (data) => {
+    try {
+      const [newMessage, chat] = await Promise.all([
+        Message.create({
+          chatId: data.chatId,
+          senderId: data.senderId,
+          content: data.content,
+          nonce: data.nonce || null
+        }),
+        Chat.findById(data.chatId)
+      ]);
 
-  io.on('connection', (socket) => {
-    // console.log(`User connected: ${socket.id} on worker ${process.pid}`);
+      const otherUserId = chat.userIds.find(id => id.toString() !== data.senderId);
 
-    socket.on('login', (userId) => {
-      const id = userId.toString();
+      Chat.findByIdAndUpdate(data.chatId, {
+        lastMessage: {
+          content: data.content,
+          senderId: data.senderId,
+          timestamp: newMessage.createdAt
+        },
+        $inc: { [`unreadCounts.${otherUserId}`]: 1 }
+      }).catch(err => console.error('Error updating chat metadata:', err));
 
-      if (!onlineUsers.has(id)) {
-        onlineUsers.set(id, new Set());
+      const senderId = data.senderId.toString();
+      const senderSockets = onlineUsers.get(senderId);
+      if (senderSockets) {
+        senderSockets.forEach(socketId => {
+          io.to(socketId).emit('receive_message', newMessage);
+        });
       }
-      const userSockets = onlineUsers.get(id);
-      userSockets.add(socket.id);
 
-      // console.log(`User logged in: ${id} (Socket: ${socket.id})`);
+      const receiverId = otherUserId.toString();
+      const receiverSockets = onlineUsers.get(receiverId);
 
-      // Only emit user_online if this is their first connection
-      if (userSockets.size === 1) {
-        io.emit('user_online', id);
+      if (receiverSockets && receiverSockets.size > 0) {
+        receiverSockets.forEach(socketId => {
+          io.to(socketId).emit('receive_message', newMessage);
+        });
       }
 
-      socket.emit('online_users', Array.from(onlineUsers.keys()));
-    });
+    } catch (err) {
+      console.error('Error sending message:', err);
+    }
+  });
 
-    socket.on('join_room', (chatId) => {
-      socket.join(chatId);
-      // console.log(`User ${socket.id} joined room ${chatId}`);
-    });
-
-    socket.on('typing', (data) => {
-      socket.to(data.chatId).emit('typing', data);
-    });
-
-    socket.on('stop_typing', (data) => {
-      socket.to(data.chatId).emit('stop_typing', data);
-    });
-
-    socket.on('send_message', async (data) => {
-      // data: { chatId, senderId, content }
-      try {
-        // Parallelize DB operations
-        // Parallelize DB operations
-        const [newMessage, chat] = await Promise.all([
-          Message.create({
-            chatId: data.chatId,
-            senderId: data.senderId,
-            content: data.content,
-            nonce: data.nonce || null
-          }),
-          Chat.findById(data.chatId)
-        ]);
-
-        const otherUserId = chat.userIds.find(id => id.toString() !== data.senderId);
-
-        // Update last message and increment unread count for the receiver
-        // This can run in background, no need to await for socket emission
-        Chat.findByIdAndUpdate(data.chatId, {
-          lastMessage: {
-            content: data.content,
-            senderId: data.senderId,
-            timestamp: newMessage.createdAt
-          },
-          $inc: { [`unreadCounts.${otherUserId}`]: 1 }
-        }).catch(err => console.error('Error updating chat metadata:', err));
-
-        // 1. Emit to ALL of Sender's sockets (so other devices update)
-        const senderId = data.senderId.toString();
+  socket.on('message_delivered', async ({ messageId, userId }) => {
+    try {
+      const message = await Message.findByIdAndUpdate(messageId, { status: 'delivered' }, { new: true });
+      if (message) {
+        const senderId = message.senderId.toString();
         const senderSockets = onlineUsers.get(senderId);
         if (senderSockets) {
           senderSockets.forEach(socketId => {
-            io.to(socketId).emit('receive_message', newMessage);
+            io.to(socketId).emit('message_status_update', { messageId, status: 'delivered' });
           });
         }
-
-        // 2. Emit to ALL of Receiver's sockets
-        const receiverId = otherUserId.toString();
-        const receiverSockets = onlineUsers.get(receiverId);
-
-        // console.log(`Sending message from ${senderId} to ${receiverId}`);
-
-        if (receiverSockets && receiverSockets.size > 0) {
-          // console.log(`Receiver has ${receiverSockets.size} active sockets`);
-          receiverSockets.forEach(socketId => {
-            io.to(socketId).emit('receive_message', newMessage);
-          });
-        } else {
-          // console.log(`Receiver ${receiverId} is OFFLINE`);
-        }
-
-      } catch (err) {
-        console.error('Error sending message:', err);
       }
-    });
+    } catch (err) {
+      console.error('Error updating delivery status:', err);
+    }
+  });
 
-    socket.on('message_delivered', async ({ messageId, userId }) => {
-      try {
-        const message = await Message.findByIdAndUpdate(messageId, { status: 'delivered' }, { new: true });
+  socket.on('message_read', async ({ messageId, userId, chatId }) => {
+    try {
+      if (messageId) {
+        await Message.findByIdAndUpdate(messageId, { status: 'read', read: true });
+        const message = await Message.findById(messageId);
         if (message) {
           const senderId = message.senderId.toString();
           const senderSockets = onlineUsers.get(senderId);
           if (senderSockets) {
             senderSockets.forEach(socketId => {
-              io.to(socketId).emit('message_status_update', { messageId, status: 'delivered' });
+              io.to(socketId).emit('message_status_update', { messageId, status: 'read' });
             });
           }
         }
-      } catch (err) {
-        console.error('Error updating delivery status:', err);
+      } else if (chatId) {
+        await Message.updateMany(
+          { chatId, senderId: { $ne: userId }, read: false },
+          { status: 'read', read: true }
+        );
+        socket.to(chatId).emit('messages_read_bulk', { chatId, readerId: userId });
       }
-    });
-
-    socket.on('message_read', async ({ messageId, userId, chatId }) => {
-      try {
-        // Update specific message or all unread messages in chat
-        if (messageId) {
-          await Message.findByIdAndUpdate(messageId, { status: 'read', read: true });
-          // Notify sender
-          const message = await Message.findById(messageId);
-          if (message) {
-            const senderId = message.senderId.toString();
-            const senderSockets = onlineUsers.get(senderId);
-            if (senderSockets) {
-              senderSockets.forEach(socketId => {
-                io.to(socketId).emit('message_status_update', { messageId, status: 'read' });
-              });
-            }
-          }
-        } else if (chatId) {
-          // Mark all messages in chat as read
-          await Message.updateMany(
-            { chatId, senderId: { $ne: userId }, read: false },
-            { status: 'read', read: true }
-          );
-          // Notify sender (broadcasting to chat room might be easier here, or find sender)
-          // For simplicity, we'll rely on the existing 'read' endpoint logic or client refresh for bulk updates
-          // But let's emit a bulk event to the room
-          socket.to(chatId).emit('messages_read_bulk', { chatId, readerId: userId });
-        }
-      } catch (err) {
-        console.error('Error updating read status:', err);
-      }
-    });
-
-    socket.on('add_reaction', async ({ messageId, userId, emoji }) => {
-      try {
-        const message = await Message.findById(messageId);
-        if (message) {
-          // Remove existing reaction from this user if any
-          const existingReactionIndex = message.reactions.findIndex(r => r.userId.toString() === userId);
-          if (existingReactionIndex > -1) {
-            message.reactions.splice(existingReactionIndex, 1);
-          }
-          // Add new reaction
-          message.reactions.push({ userId, emoji });
-          await message.save();
-
-          // Broadcast to chat participants
-          // We need to find the chat to know who to notify, or just notify sender + receiver
-          // A simpler way is to emit to the chat room if we had rooms for chats.
-          // We do have `join_room`! So we can emit to the room.
-          io.to(message.chatId.toString()).emit('reaction_updated', { messageId, reactions: message.reactions });
-        }
-      } catch (err) {
-        console.error('Error adding reaction:', err);
-      }
-    });
-
-    socket.on('disconnect', () => {
-      // console.log(`User disconnected: ${socket.id}`);
-
-      // Find which user this socket belonged to
-      for (const [userId, sockets] of onlineUsers.entries()) {
-        if (sockets.has(socket.id)) {
-          sockets.delete(socket.id);
-
-          // If no more sockets for this user, they are truly offline
-          if (sockets.size === 0) {
-            onlineUsers.delete(userId);
-
-            // Update lastSeen in DB
-            User.findByIdAndUpdate(userId, { lastSeen: new Date() }).catch(err => console.error('Error updating lastSeen:', err));
-
-            io.emit('user_offline', userId);
-            // console.log(`User truly offline: ${userId}`);
-          } else {
-            // console.log(`User ${userId} still has ${sockets.size} active sockets`);
-          }
-          break;
-        }
-      }
-    });
+    } catch (err) {
+      console.error('Error updating read status:', err);
+    }
   });
 
-  // Database Connection and Server Startup
-  mongoose.connect(process.env.MONGODB_URI, {
-    maxPoolSize: 50, // Increase connection pool size for high concurrency
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-  })
-    .then(() => {
-      console.log(`Worker ${process.pid} connected to MongoDB`);
-      // Note: We do NOT call server.listen() here because setupMaster handles the listening
-    })
-    .catch(err => {
-      console.error('MongoDB connection error:', err);
-      process.exit(1);
+  socket.on('add_reaction', async ({ messageId, userId, emoji }) => {
+    try {
+      const message = await Message.findById(messageId);
+      if (message) {
+        const existingReactionIndex = message.reactions.findIndex(r => r.userId.toString() === userId);
+        if (existingReactionIndex > -1) {
+          message.reactions.splice(existingReactionIndex, 1);
+        }
+        message.reactions.push({ userId, emoji });
+        await message.save();
+        io.to(message.chatId.toString()).emit('reaction_updated', { messageId, reactions: message.reactions });
+      }
+    } catch (err) {
+      console.error('Error adding reaction:', err);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    for (const [userId, sockets] of onlineUsers.entries()) {
+      if (sockets.has(socket.id)) {
+        sockets.delete(socket.id);
+        if (sockets.size === 0) {
+          onlineUsers.delete(userId);
+          User.findByIdAndUpdate(userId, { lastSeen: new Date() }).catch(err => console.error('Error updating lastSeen:', err));
+          io.emit('user_offline', userId);
+        }
+        break;
+      }
+    }
+  });
+});
+
+// Database Connection and Server Startup
+mongoose.connect(process.env.MONGODB_URI, {
+  maxPoolSize: 50,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
+  .then(() => {
+    console.log('Connected to MongoDB');
+    server.listen(PORT, () => {
+      console.log(`Server listening on port ${PORT}`);
     });
-}
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
