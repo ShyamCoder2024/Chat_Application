@@ -32,6 +32,8 @@ const ChatLayout = () => {
         chatsRef.current = chats;
     }, [chats]);
 
+    const [error, setError] = useState(null);
+
     // Fetch Chats
     useEffect(() => {
         if (view === 'chats') {
@@ -41,7 +43,11 @@ const ChatLayout = () => {
 
     const fetchChats = async () => {
         try {
+            setError(null);
             const res = await fetch(`${API_URL}/api/chats/${user._id}`);
+            if (!res.ok) {
+                throw new Error(`Failed to load chats: ${res.status}`);
+            }
             const data = await res.json();
 
             const formattedChats = data.map(chat => {
@@ -62,6 +68,7 @@ const ChatLayout = () => {
             setChats(formattedChats);
         } catch (err) {
             console.error(err);
+            setError("Could not connect to server. Please check your internet connection.");
         }
     };
 
@@ -488,13 +495,20 @@ const ChatLayout = () => {
                     </div>
                 </div>
 
-                <ChatList
-                    chats={chats}
-                    onSelectChat={handleSelectChat}
-                    activeChatId={activeChat?.id}
-                    isLoading={chats.length === 0 && !activeChat}
-                    onlineUsers={onlineUsers}
-                />
+                {error ? (
+                    <div className="error-state" style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
+                        <p>{error}</p>
+                        <Button variant="primary" onClick={fetchChats} style={{ marginTop: '10px' }}>Retry</Button>
+                    </div>
+                ) : (
+                    <ChatList
+                        chats={chats}
+                        onSelectChat={handleSelectChat}
+                        activeChatId={activeChat?.id}
+                        isLoading={chats.length === 0 && !activeChat}
+                        onlineUsers={onlineUsers}
+                    />
+                )}
 
                 <div className="bottom-nav">
                     <Button variant="text" className={view === 'chats' ? 'active-nav' : ''} onClick={() => {
