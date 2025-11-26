@@ -46,7 +46,8 @@ const ChatLayout = () => {
             setError(null);
             // Add 5 second timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            // Increase timeout to 60s for Render cold starts
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
 
             const res = await fetch(`${API_URL}/api/chats/${user._id}`, {
                 signal: controller.signal
