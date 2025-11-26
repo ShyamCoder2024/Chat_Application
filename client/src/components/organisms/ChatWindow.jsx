@@ -144,10 +144,6 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             </div>
 
             <div className="input-area">
-                <Button variant="text" size="icon" className="attach-btn">
-                    <Paperclip size={20} />
-                </Button>
-
                 <form onSubmit={handleSend} className="message-form">
                     <Input
                         placeholder="Type a message..."
