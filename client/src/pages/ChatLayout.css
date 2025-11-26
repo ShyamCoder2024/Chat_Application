@@ -47,7 +47,7 @@
 }
 
 :root[data-theme='dark'] .main-content {
-    background-color: var(--color-deep-black) !important;
+    background-color: #121212 !important;
 }
 
 .empty-state {
