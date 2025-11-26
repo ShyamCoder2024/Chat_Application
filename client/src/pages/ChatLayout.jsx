@@ -249,7 +249,7 @@ const ChatLayout = () => {
                 </div>
             </div>
 
-            <div className={`main-content ${view === 'chats' ? 'hidden-mobile' : ''} animate-fade-in`}>
+            <div className={`main-content ${view === 'chats' ? 'hidden-mobile' : ''}`}>
                 {view === 'profile' ? (
                     <div className="animate-pop-in">
                         <ProfileSection
