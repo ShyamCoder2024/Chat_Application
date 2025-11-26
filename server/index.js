@@ -25,7 +25,7 @@ app.use('/api/users', require('./routes/users'));
 // Socket.io Setup
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "*", // Allow all origins for deployment
     methods: ["GET", "POST"]
   }
 });
