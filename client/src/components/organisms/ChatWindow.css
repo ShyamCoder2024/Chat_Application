@@ -2,66 +2,104 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: #e5ddd5;
-    /* WhatsApp-like background */
-    background-image: url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png");
+    background-color: var(--color-bg-secondary);
     position: relative;
 }
 
 .messages-area {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 }
 
 .input-area {
-    padding: 10px;
-    background-color: #f0f0f0;
+    padding: 16px 24px;
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .message-form {
     flex: 1;
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
 }
 
 .message-input {
     flex: 1;
-    border-radius: 20px;
-    border: none;
-    padding: 10px 15px;
-    background-color: white;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 12px 20px;
+    background-color: var(--color-white);
+    font-size: 15px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.message-input:focus {
+    box-shadow: var(--shadow-md);
+    border-color: rgba(0, 0, 0, 0.1);
 }
 
 .send-btn,
 .attach-btn {
-    color: #54656f;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .send-btn:hover,
 .attach-btn:hover {
     background-color: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+.send-btn {
+    background-color: var(--color-deep-black);
+    color: var(--color-white);
+}
+
+.send-btn:hover {
+    background-color: black;
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.send-btn:disabled {
+    background-color: var(--text-disabled);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 /* Date Separator */
 .date-separator {
     display: flex;
     justify-content: center;
-    margin: 10px 0;
+    margin: 24px 0;
+    opacity: 0.8;
 }
 
 .date-separator span {
-    background-color: #e1f3fb;
-    color: #5b6b75;
-    padding: 5px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.03);
+    color: var(--text-secondary);
+    padding: 6px 16px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
