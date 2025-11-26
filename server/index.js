@@ -20,6 +20,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
+app.use('/api/users', require('./routes/users'));
 
 // Socket.io Setup
 const io = new Server(server, {
@@ -58,12 +59,19 @@ io.on('connection', (socket) => {
     // data: { chatId, senderId, content }
     try {
       const newMessage = await Message.create(data);
+
+      // Find the chat to get the other user ID
+      const chat = await Chat.findById(data.chatId);
+      const otherUserId = chat.userIds.find(id => id.toString() !== data.senderId);
+
+      // Update last message and increment unread count for the receiver
       await Chat.findByIdAndUpdate(data.chatId, {
         lastMessage: {
           content: data.content,
           senderId: data.senderId,
           timestamp: newMessage.createdAt
-        }
+        },
+        $inc: { [`unreadCounts.${otherUserId}`]: 1 }
       });
 
       io.to(data.chatId).emit('receive_message', newMessage);

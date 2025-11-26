@@ -82,4 +82,17 @@ router.post('/block', async (req, res) => {
     }
 });
 
+// Mark Chat as Read
+router.put('/:chatId/read', async (req, res) => {
+    const { userId } = req.body;
+    try {
+        await Chat.findByIdAndUpdate(req.params.chatId, {
+            [`unreadCounts.${userId}`]: 0
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;

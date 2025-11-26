@@ -10,14 +10,15 @@ const ChatListItem = ({
     unreadCount,
     avatarSrc,
     isActive,
-    onClick
+    onClick,
+    isOnline
 }) => {
     return (
         <div
             className={`chat-list-item ${isActive ? 'active' : ''}`}
             onClick={onClick}
         >
-            <Avatar src={avatarSrc} fallback={name[0]} size="medium" />
+            <Avatar src={avatarSrc} fallback={name[0]} size="medium" status={isOnline ? 'online' : 'offline'} />
 
             <div className="chat-info">
                 <div className="chat-header">
@@ -30,7 +31,7 @@ const ChatListItem = ({
                     {unreadCount > 0 && <Badge count={unreadCount} />}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

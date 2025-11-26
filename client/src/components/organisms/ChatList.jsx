@@ -4,7 +4,7 @@ import './ChatList.css';
 
 import Skeleton from '../atoms/Skeleton';
 
-const ChatList = ({ chats, onSelectChat, activeChatId, isLoading }) => {
+const ChatList = ({ chats, onSelectChat, activeChatId, isLoading, onlineUsers = new Set() }) => {
     if (isLoading) {
         return (
             <div className="chat-list">
@@ -33,6 +33,7 @@ const ChatList = ({ chats, onSelectChat, activeChatId, isLoading }) => {
                     avatarSrc={chat.avatar}
                     isActive={activeChatId === chat.id}
                     onClick={() => onSelectChat(chat)}
+                    isOnline={onlineUsers.has(chat.otherUserId)}
                 />
             ))}
         </div>
