@@ -11,10 +11,20 @@ const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
     const [bio, setBio] = useState(user?.bio || '');
     const [avatar, setAvatar] = useState(user?.profilePic || '');
     const [isEditing, setIsEditing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const handleSave = () => {
-        onSave({ name, bio, profilePic: avatar });
-        setIsEditing(false);
+    const handleSave = async () => {
+        setIsLoading(true);
+        setError('');
+        try {
+            await onSave({ name, bio, profilePic: avatar });
+            setIsEditing(false);
+        } catch (err) {
+            setError('Failed to save profile. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -50,11 +60,12 @@ const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
                                 placeholder="Tell us about yourself"
                             />
                         </div>
+                        {error && <div className="error-message" style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
                         <div className="form-actions">
-                            <Button variant="primary" onClick={handleSave} className="full-width">
-                                Save Changes
+                            <Button variant="primary" onClick={handleSave} className="full-width" disabled={isLoading}>
+                                {isLoading ? 'Saving...' : 'Save Changes'}
                             </Button>
-                            <Button variant="text" onClick={() => setIsEditing(false)} className="full-width">
+                            <Button variant="text" onClick={() => setIsEditing(false)} className="full-width" disabled={isLoading}>
                                 Cancel
                             </Button>
                         </div>

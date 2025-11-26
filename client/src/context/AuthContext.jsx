@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(data.user));
             return data.user;
         } catch (err) {
+            console.error("Login error:", err);
             throw err;
         }
     };
@@ -49,6 +50,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(data.user));
             return data.user;
         } catch (err) {
+            console.error("Register error:", err);
             throw err;
         }
     };
@@ -65,8 +67,10 @@ export const AuthProvider = ({ children }) => {
 
             setUser(data.user);
             localStorage.setItem('user', JSON.stringify(data.user));
+            return data.user;
         } catch (err) {
-            console.error(err);
+            console.error("Update profile error:", err);
+            throw err;
         }
     };
 
