@@ -24,7 +24,7 @@ router.post('/', async (req, res) => {
 
         let chat = await Chat.findOne({
             userIds: { $all: userIds }
-        });
+        }).lean();
 
         if (!chat) {
             chat = await Chat.create({
@@ -32,7 +32,9 @@ router.post('/', async (req, res) => {
             });
         }
 
-        const populatedChat = await Chat.findById(chat._id).populate('userIds', 'firstName lastName name phone profilePic lastSeen');
+        const populatedChat = await Chat.findById(chat._id)
+            .populate('userIds', 'firstName lastName name phone profilePic lastSeen')
+            .lean();
         res.json(populatedChat);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -49,7 +51,8 @@ router.get('/:userId', async (req, res) => {
             userIds: { $in: [req.params.userId] }
         })
             .populate('userIds', 'firstName lastName name phone profilePic lastSeen')
-            .sort({ updatedAt: -1 });
+            .sort({ updatedAt: -1 })
+            .lean();
 
         // Deduplicate chats based on other user ID
         const uniqueChats = [];
@@ -83,7 +86,8 @@ router.get('/:userId', async (req, res) => {
 router.get('/single/:chatId', async (req, res) => {
     try {
         const chat = await Chat.findById(req.params.chatId)
-            .populate('userIds', 'firstName lastName name phone profilePic lastSeen');
+            .populate('userIds', 'firstName lastName name phone profilePic lastSeen')
+            .lean();
         if (!chat) return res.status(404).json({ error: 'Chat not found' });
         res.json(chat);
     } catch (err) {
@@ -94,8 +98,20 @@ router.get('/single/:chatId', async (req, res) => {
 // Get Messages
 router.get('/:chatId/messages', async (req, res) => {
     try {
-        const messages = await Message.find({ chatId: req.params.chatId }).sort({ createdAt: 1 });
-        res.json(messages);
+        const { limit = 50, before } = req.query;
+        const query = { chatId: req.params.chatId };
+
+        if (before) {
+            query.createdAt = { $lt: new Date(before) };
+        }
+
+        const messages = await Message.find(query)
+            .sort({ createdAt: -1 }) // Sort by newest first for pagination
+            .limit(parseInt(limit))
+            .lean();
+
+        // Reverse back to oldest first for display
+        res.json(messages.reverse());
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

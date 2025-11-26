@@ -35,5 +35,9 @@ const messageSchema = new mongoose.Schema({
 
 // Index for automatic deletion after 24 hours (86400 seconds)
 messageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });
+// Compound index for fetching chat history efficiently
+messageSchema.index({ chatId: 1, createdAt: -1 });
+// Index for finding messages by sender
+messageSchema.index({ senderId: 1 });
 
 module.exports = mongoose.model('Message', messageSchema);

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import io from 'socket.io-client';
+import msgpackParser from 'socket.io-msgpack-parser';
 import { useAuth } from './AuthContext';
 import { API_URL } from '../config';
 
@@ -14,7 +15,9 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-            const newSocket = io(API_URL);
+            const newSocket = io(API_URL, {
+                parser: msgpackParser
+            });
             setSocket(newSocket);
 
             newSocket.emit('login', user._id.toString());

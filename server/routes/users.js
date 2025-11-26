@@ -11,7 +11,7 @@ router.get('/search', async (req, res) => {
     }
 
     try {
-        const user = await User.findOne({ phone }).select('name phone profilePic bio');
+        const user = await User.findOne({ phone }).select('name phone profilePic bio').lean();
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -24,7 +24,7 @@ router.get('/search', async (req, res) => {
 // Get User Profile by ID
 router.get('/:userId', async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId).select('name phone profilePic bio');
+        const user = await User.findById(req.params.userId).select('name phone profilePic bio').lean();
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }

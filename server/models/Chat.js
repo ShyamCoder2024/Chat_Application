@@ -17,4 +17,7 @@ const chatSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+// Index for finding chats by user
+chatSchema.index({ userIds: 1 });
+
 module.exports = mongoose.model('Chat', chatSchema);
