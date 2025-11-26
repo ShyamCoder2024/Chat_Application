@@ -4,7 +4,7 @@ const User = require('../models/User');
 
 // Register
 router.post('/register', async (req, res) => {
-    const { phone, password, firstName, lastName, profilePic } = req.body;
+    const { phone, password, firstName, lastName, profilePic, publicKey } = req.body;
 
     if (!phone || !password || !firstName || !lastName) {
         return res.status(400).json({ error: 'All fields are required' });
@@ -21,7 +21,8 @@ router.post('/register', async (req, res) => {
             password,
             firstName,
             lastName,
-            profilePic: profilePic || ''
+            profilePic: profilePic || '',
+            publicKey: publicKey || ''
         });
 
         // Create welcome chat for new user

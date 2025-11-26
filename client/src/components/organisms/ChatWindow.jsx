@@ -8,6 +8,7 @@ import ChatMenu from '../molecules/ChatMenu';
 import Input from '../atoms/Input';
 import Button from '../atoms/Button';
 import { formatLastSeen, formatMessageDate } from '../../utils/dateUtils';
+import { deriveSharedKey, encryptMessage, decryptMessage } from '../../utils/crypto';
 import './ChatWindow.css';
 
 const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen }) => {
@@ -17,9 +18,26 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const typingTimeoutRef = useRef(null);
     const { socket } = useSocket();
 
+    const [sharedKey, setSharedKey] = useState(null);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+    useEffect(() => {
+        const otherUser = chat.userIds.find(u => u._id !== currentUserId);
+        if (otherUser && otherUser.publicKey) {
+            const mySecretKey = localStorage.getItem('chat_secret_key');
+            if (mySecretKey) {
+                try {
+                    const key = deriveSharedKey(mySecretKey, otherUser.publicKey);
+                    setSharedKey(key);
+                } catch (err) {
+                    console.error("Error deriving shared key:", err);
+                }
+            }
+        }
+    }, [chat, currentUserId]);
 
     useEffect(() => {
         scrollToBottom();
@@ -82,7 +100,21 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const handleSend = (e) => {
         e.preventDefault();
         if (newMessage.trim()) {
-            onSendMessage(newMessage);
+            let messageToSend = newMessage;
+            let nonce = null;
+
+            if (sharedKey) {
+                try {
+                    const encrypted = encryptMessage(newMessage, sharedKey);
+                    messageToSend = encrypted.encrypted;
+                    nonce = encrypted.nonce;
+                } catch (err) {
+                    console.error("Error encrypting message:", err);
+                    // Fallback to plain text if encryption fails (or handle error)
+                }
+            }
+
+            onSendMessage(messageToSend, nonce);
             setNewMessage('');
             if (socket) {
                 socket.emit('stop_typing', { chatId: chat.id, userId: currentUserId });
@@ -106,10 +138,21 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 lastDate = msgDate;
             }
 
+            let displayMessage = msg;
+            if (msg.nonce && sharedKey) {
+                try {
+                    const decryptedContent = decryptMessage(msg.content, msg.nonce, sharedKey);
+                    displayMessage = { ...msg, content: decryptedContent };
+                } catch (err) {
+                    // console.error("Error decrypting message:", err);
+                    displayMessage = { ...msg, content: '🔒 Encrypted message' };
+                }
+            }
+
             result.push(
                 <MessageBubble
                     key={msg.id}
-                    message={msg}
+                    message={displayMessage}
                     isSent={msg.senderId === currentUserId}
                 />
             );

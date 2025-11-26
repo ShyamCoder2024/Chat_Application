@@ -13,7 +13,12 @@ const messageSchema = new mongoose.Schema({
     },
     content: {
         type: String,
-        required: true
+        required: true,
+        trim: true
+    },
+    nonce: {
+        type: String, // For E2EE
+        default: null
     },
     status: {
         type: String,

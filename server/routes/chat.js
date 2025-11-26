@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
         }
 
         const populatedChat = await Chat.findById(chat._id)
-            .populate('userIds', 'firstName lastName name phone profilePic lastSeen')
+            .populate('userIds', 'firstName lastName name phone profilePic lastSeen publicKey')
             .lean();
         res.json(populatedChat);
     } catch (err) {
@@ -50,7 +50,7 @@ router.get('/:userId', async (req, res) => {
         const chats = await Chat.find({
             userIds: { $in: [req.params.userId] }
         })
-            .populate('userIds', 'firstName lastName name phone profilePic lastSeen')
+            .populate('userIds', 'firstName lastName name phone profilePic lastSeen publicKey')
             .sort({ updatedAt: -1 })
             .lean();
 
@@ -86,7 +86,7 @@ router.get('/:userId', async (req, res) => {
 router.get('/single/:chatId', async (req, res) => {
     try {
         const chat = await Chat.findById(req.params.chatId)
-            .populate('userIds', 'firstName lastName name phone profilePic lastSeen')
+            .populate('userIds', 'firstName lastName name phone profilePic lastSeen publicKey')
             .lean();
         if (!chat) return res.status(404).json({ error: 'Chat not found' });
         res.json(chat);

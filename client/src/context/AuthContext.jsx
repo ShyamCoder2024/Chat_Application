@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { API_URL } from '../config';
+import { generateKeyPair } from '../utils/crypto';
 
 const AuthContext = createContext();
 
@@ -14,6 +15,14 @@ export const AuthProvider = ({ children }) => {
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
+
+        // Check for E2EE keys
+        if (!localStorage.getItem('chat_secret_key')) {
+            const keys = generateKeyPair();
+            localStorage.setItem('chat_public_key', keys.publicKey);
+            localStorage.setItem('chat_secret_key', keys.secretKey);
+        }
+
         setLoading(false);
     }, []);
 
@@ -27,6 +36,21 @@ export const AuthProvider = ({ children }) => {
             const data = await res.json();
             if (data.error) throw new Error(data.error);
 
+            // Ensure keys exist
+            let publicKey = localStorage.getItem('chat_public_key');
+            if (!publicKey) {
+                const keys = generateKeyPair();
+                publicKey = keys.publicKey;
+                localStorage.setItem('chat_public_key', keys.publicKey);
+                localStorage.setItem('chat_secret_key', keys.secretKey);
+            }
+
+            // If server user doesn't have public key, update it
+            if (!data.user.publicKey) {
+                await updateProfile({ publicKey });
+                data.user.publicKey = publicKey;
+            }
+
             setUser(data.user);
             localStorage.setItem('user', JSON.stringify(data.user));
             return data.user;
@@ -38,10 +62,19 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (phone, password, firstName, lastName, profilePic) => {
         try {
+            // Ensure keys exist
+            let publicKey = localStorage.getItem('chat_public_key');
+            if (!publicKey) {
+                const keys = generateKeyPair();
+                publicKey = keys.publicKey;
+                localStorage.setItem('chat_public_key', keys.publicKey);
+                localStorage.setItem('chat_secret_key', keys.secretKey);
+            }
+
             const res = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, password, firstName, lastName, profilePic })
+                body: JSON.stringify({ phone, password, firstName, lastName, profilePic, publicKey })
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);

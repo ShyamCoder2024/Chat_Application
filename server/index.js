@@ -7,7 +7,8 @@ const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cluster = require('cluster');
-const numCPUs = require('os').cpus().length;
+// Limit to 4 workers max for free tier compatibility, or use available cores if less
+const numCPUs = Math.min(require('os').cpus().length, 4);
 const { setupMaster, setupWorker } = require("@socket.io/sticky");
 const { createAdapter, setupPrimary } = require("@socket.io/cluster-adapter");
 const msgpackParser = require("socket.io-msgpack-parser");
@@ -126,8 +127,14 @@ if (cluster.isPrimary) {
       // data: { chatId, senderId, content }
       try {
         // Parallelize DB operations
+        // Parallelize DB operations
         const [newMessage, chat] = await Promise.all([
-          Message.create(data),
+          Message.create({
+            chatId: data.chatId,
+            senderId: data.senderId,
+            content: data.content,
+            nonce: data.nonce || null
+          }),
           Chat.findById(data.chatId)
         ]);
 

@@ -101,6 +101,7 @@ const ChatLayout = () => {
                     return [...prev, {
                         id: message._id,
                         content: message.content,
+                        nonce: message.nonce,
                         senderId: message.senderId,
                         time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         status: message.status
@@ -220,7 +221,7 @@ const ChatLayout = () => {
         }
     };
 
-    const handleSendMessage = (content) => {
+    const handleSendMessage = (content, nonce = null) => {
         if (!socket || !activeChat) return;
 
         playSound('sent'); // Play sent sound
@@ -230,6 +231,7 @@ const ChatLayout = () => {
         const optimisticMessage = {
             id: tempId,
             content,
+            nonce,
             senderId: user._id,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isOptimistic: true
@@ -241,7 +243,7 @@ const ChatLayout = () => {
         setChats(prev => prev.map(c =>
             c.id === activeChat.id ? {
                 ...c,
-                lastMessage: content,
+                lastMessage: content, // Note: This will be encrypted text in preview if E2EE is on
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             } : c
         ));
@@ -249,7 +251,8 @@ const ChatLayout = () => {
         socket.emit('send_message', {
             chatId: activeChat.id,
             senderId: user._id,
-            content
+            content,
+            nonce
         });
     };
 
