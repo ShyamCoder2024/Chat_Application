@@ -92,7 +92,7 @@ router.put('/profile/:userId', async (req, res) => {
         const user = await User.findByIdAndUpdate(
             req.params.userId,
             req.body,
-            { new: true }
+            { new: true, runValidators: true }
         );
         res.json({ user });
     } catch (err) {

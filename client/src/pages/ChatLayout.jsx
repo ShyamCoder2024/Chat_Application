@@ -390,6 +390,7 @@ const ChatLayout = () => {
                 profilePic: user.profilePic || ''
             });
             setShowMandatoryUpdate(false);
+            window.location.reload(); // Force reload to ensure fresh state and persistence
         } catch (err) {
             console.error("Failed to update profile", err);
             alert("Failed to update profile. Please try again.");
