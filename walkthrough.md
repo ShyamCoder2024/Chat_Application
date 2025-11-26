@@ -1,53 +1,51 @@
-# Walkthrough - Fix Real-time Message for New Users
+# Walkthrough - Block/Unblock Chat Visibility
 
 ## Problem
-When a user received a message from a new contact (someone not in their current chat list), the message would not appear in the UI until the page was refreshed. This was because the socket listener only updated *existing* chats in the list and ignored messages for unknown chat IDs.
+Previously, blocking a user did not remove them from the chat list. The user wanted blocked users to disappear from the chat list and reappear only when unblocked.
 
 ## Solution
-I implemented a mechanism to detect when a message belongs to a new conversation and fetch the necessary chat details immediately.
+I implemented backend filtering and frontend state updates to achieve this behavior.
 
 ### Backend Changes
-Added a new endpoint to `server/routes/chat.js` to fetch details for a single chat by ID.
-```javascript
-// Get Single Chat
-router.get('/single/:chatId', async (req, res) => {
-    try {
-        const chat = await Chat.findById(req.params.chatId)
-            .populate('userIds', 'firstName lastName name phone profilePic lastSeen');
-        if (!chat) return res.status(404).json({ error: 'Chat not found' });
-        res.json(chat);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-```
-
-### Frontend Changes
-Updated `client/src/pages/ChatLayout.jsx` to:
-1.  Use a `useRef` to track the current `chats` list, ensuring the socket listener always has access to the latest state without needing to re-subscribe on every update.
-2.  Modify the `receive_message` socket listener to check if the `chatId` exists in the local list.
-3.  If the chat is new, fetch its details using the new backend endpoint and add it to the `chats` state dynamically.
+Modified `server/routes/chat.js` to filter out chats involving blocked users in the `GET /api/chats/:userId` endpoint.
 
 ```javascript
-// Inside socket.on('receive_message')
-const currentChats = chatsRef.current;
-const chatExists = currentChats.some(c => c.id === message.chatId);
+// server/routes/chat.js
+const currentUser = await User.findById(req.params.userId);
+const blockedUserIds = new Set(currentUser.blockedUsers.map(id => id.toString()));
 
-if (!chatExists) {
-    // New Chat! Fetch details and add to list
-    const res = await fetch(`${API_URL}/api/chats/single/${message.chatId}`);
-    if (res.ok) {
-        const newChatData = await res.json();
-        // Format and add to state...
-        setChats(prev => [newChat, ...prev]);
+// ... inside the loop ...
+if (otherUser) {
+    // Skip if this user is blocked
+    if (blockedUserIds.has(otherUser._id.toString())) {
+        continue;
     }
+    // ...
 }
 ```
 
-## Verification
-- **Scenario 1:** User receives a message from an existing friend.
-    - Result: Chat list updates with the new message and time. (Existing behavior preserved)
-- **Scenario 2:** User receives a message from a *new* user.
-    - Result: The application detects the unknown chat ID, fetches the user details, and adds the new conversation to the top of the list immediately.
+### Frontend Changes
+Updated `client/src/pages/ChatLayout.jsx`:
 
-The fix ensures that all incoming messages are displayed instantly, regardless of whether the conversation existed previously.
+1.  **Immediate Removal:** When a user is blocked, the chat is immediately removed from the local `chats` state.
+    ```javascript
+    // handleBlockUser
+    setChats(prev => prev.filter(c => c.id !== activeChat.id));
+    ```
+
+2.  **Auto-Refresh on Unblock:** Added a dependency on `view` to the `fetchChats` effect. When the user navigates back to the 'chats' view (e.g., after unblocking someone in the Profile section), the chat list is re-fetched, bringing back the unblocked user.
+    ```javascript
+    useEffect(() => {
+        if (view === 'chats') {
+            fetchChats();
+        }
+    }, [user, view]);
+    ```
+
+## Verification
+- **Scenario 1:** User blocks a contact.
+    - Result: The chat immediately disappears from the list and the user is returned to the main view.
+- **Scenario 2:** User goes to Profile -> Blocked Users and unblocks the contact.
+    - Result: When the user navigates back to the main chat list, the unblocked contact reappears.
+
+This ensures a smooth and intuitive experience for managing blocked contacts.

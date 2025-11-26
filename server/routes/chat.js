@@ -42,6 +42,9 @@ router.post('/', async (req, res) => {
 // Get All Chats for User
 router.get('/:userId', async (req, res) => {
     try {
+        const currentUser = await User.findById(req.params.userId);
+        const blockedUserIds = new Set(currentUser.blockedUsers.map(id => id.toString()));
+
         const chats = await Chat.find({
             userIds: { $in: [req.params.userId] }
         })
@@ -55,6 +58,11 @@ router.get('/:userId', async (req, res) => {
         for (const chat of chats) {
             const otherUser = chat.userIds.find(u => u._id.toString() !== req.params.userId);
             if (otherUser) {
+                // Skip if this user is blocked
+                if (blockedUserIds.has(otherUser._id.toString())) {
+                    continue;
+                }
+
                 if (!seenUserIds.has(otherUser._id.toString())) {
                     seenUserIds.add(otherUser._id.toString());
                     uniqueChats.push(chat);

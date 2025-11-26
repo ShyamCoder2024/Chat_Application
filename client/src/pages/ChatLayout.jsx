@@ -34,8 +34,10 @@ const ChatLayout = () => {
 
     // Fetch Chats
     useEffect(() => {
-        fetchChats();
-    }, [user]);
+        if (view === 'chats') {
+            fetchChats();
+        }
+    }, [user, view]);
 
     const fetchChats = async () => {
         try {
@@ -352,6 +354,8 @@ const ChatLayout = () => {
                     })
                 });
                 alert('User blocked');
+                // Remove from local state immediately
+                setChats(prev => prev.filter(c => c.id !== activeChat.id));
                 window.history.back(); // Go back to list
             } catch (err) {
                 console.error(err);
