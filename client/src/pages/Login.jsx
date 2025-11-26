@@ -169,19 +169,23 @@ const Login = () => {
 
             <div className="login-right">
                 <div className="avatar-showcase">
-                    {showcaseAvatars.map((seed, index) => (
-                        <div
-                            key={seed}
-                            className="floating-avatar"
-                            style={{
-                                animationDelay: `${index * 0.2}s`,
-                                top: `${Math.random() * 80 + 10}%`,
-                                left: `${Math.random() * 80 + 10}%`
-                            }}
-                        >
-                            <img src={getAvatarUrl(seed)} alt="Avatar" />
-                        </div>
-                    ))}
+                    {showcaseAvatars.map((seed, index) => {
+                        const row = Math.floor(index / 3);
+                        const col = index % 3;
+                        return (
+                            <div
+                                key={seed}
+                                className="floating-avatar"
+                                style={{
+                                    animationDelay: `${index * 0.2}s`,
+                                    top: `${row * 25 + 10}%`,
+                                    left: `${col * 30 + 10}%`
+                                }}
+                            >
+                                <img src={getAvatarUrl(seed)} alt="Avatar" />
+                            </div>
+                        );
+                    })}
                 </div>
                 <div className="showcase-content">
                     <h2>Connect with friends</h2>

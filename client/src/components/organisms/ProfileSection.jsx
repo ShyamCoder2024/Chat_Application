@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Avatar from '../atoms/Avatar';
 import Input from '../atoms/Input';
 import Button from '../atoms/Button';

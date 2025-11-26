@@ -32,7 +32,7 @@ router.post('/', async (req, res) => {
             });
         }
 
-        const populatedChat = await Chat.findById(chat._id).populate('userIds', 'firstName lastName phone profilePic lastSeen');
+        const populatedChat = await Chat.findById(chat._id).populate('userIds', 'firstName lastName name phone profilePic lastSeen');
         res.json(populatedChat);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -45,7 +45,7 @@ router.get('/:userId', async (req, res) => {
         const chats = await Chat.find({
             userIds: { $in: [req.params.userId] }
         })
-            .populate('userIds', 'firstName lastName phone profilePic lastSeen')
+            .populate('userIds', 'firstName lastName name phone profilePic lastSeen')
             .sort({ updatedAt: -1 });
 
         // Deduplicate chats based on other user ID
