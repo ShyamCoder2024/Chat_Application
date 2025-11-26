@@ -29,6 +29,11 @@
     justify-content: center;
 }
 
+.header-avatar-container {
+    display: flex;
+    align-items: center;
+}
+
 .header-title-container {
     display: flex;
     flex-direction: column;

@@ -1,9 +1,10 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Button from '../atoms/Button';
+import Avatar from '../atoms/Avatar';
 import './Header.css';
 
-const Header = ({ title, subtitle, onBack, actions }) => {
+const Header = ({ title, subtitle, onBack, actions, avatar }) => {
     return (
         <header className="app-header">
             <div className="header-left">
@@ -12,6 +13,9 @@ const Header = ({ title, subtitle, onBack, actions }) => {
                         <ArrowLeft size={20} />
                     </Button>
                 )}
+                <div className="header-avatar-container">
+                    {avatar && <Avatar src={avatar} fallback={title[0]} size="small" />}
+                </div>
                 <div className="header-title-container">
                     <h1 className="header-title">{title}</h1>
                     {subtitle && <span className="header-subtitle">{subtitle}</span>}

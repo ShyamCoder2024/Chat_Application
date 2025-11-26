@@ -33,4 +33,7 @@ const messageSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+// Index for automatic deletion after 24 hours (86400 seconds)
+messageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });
+
 module.exports = mongoose.model('Message', messageSchema);

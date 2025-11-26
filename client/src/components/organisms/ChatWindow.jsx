@@ -124,6 +124,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             <Header
                 title={chat.name}
                 subtitle={isTyping ? 'Typing...' : (isOnline ? 'Online' : formatLastSeen(lastSeen))}
+                avatar={chat.avatar}
                 onBack={onBack}
                 actions={
                     <ChatMenu
@@ -135,6 +136,9 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             />
 
             <div className="messages-area">
+                <div className="retention-notice">
+                    <p>Messages are automatically deleted after 24 hours.</p>
+                </div>
                 {renderMessages()}
                 {isTyping && <TypingIndicator />}
                 <div ref={messagesEndRef} />
