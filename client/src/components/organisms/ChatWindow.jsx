@@ -145,8 +145,14 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     displayMessage = { ...msg, content: decryptedContent };
                 } catch (err) {
                     // console.error("Error decrypting message:", err);
-                    displayMessage = { ...msg, content: '🔒 Encrypted message' };
+                    displayMessage = { ...msg, content: '🔒 Encrypted message (Decryption failed)' };
                 }
+            } else if (!msg.nonce && msg.content) {
+                // Legacy message (not encrypted) or system message
+                // If it looks like base64, it might be encrypted but missing nonce (edge case)
+                // For now, assume it's plain text if no nonce, but this might be risky if we encrypted without nonce before.
+                // Based on history, we always added nonce with encryption.
+                displayMessage = msg;
             }
 
             result.push(
