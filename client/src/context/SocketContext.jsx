@@ -17,7 +17,7 @@ export const SocketProvider = ({ children }) => {
             const newSocket = io(API_URL);
             setSocket(newSocket);
 
-            newSocket.emit('login', user._id);
+            newSocket.emit('login', user._id.toString());
 
             newSocket.on('online_users', (users) => {
                 setOnlineUsers(new Set(users));

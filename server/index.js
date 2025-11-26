@@ -36,9 +36,10 @@ io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
   socket.on('login', (userId) => {
-    onlineUsers.set(userId, socket.id);
-    io.emit('user_online', userId);
-    // Send list of currently online users to the new user
+    const id = userId.toString();
+    onlineUsers.set(id, socket.id);
+    console.log(`User logged in: ${id} (Socket: ${socket.id})`);
+    io.emit('user_online', id);
     socket.emit('online_users', Array.from(onlineUsers.keys()));
   });
 
@@ -78,22 +79,28 @@ io.on('connection', (socket) => {
       socket.emit('receive_message', newMessage);
 
       // Emit to receiver if online
-      const receiverSocketId = onlineUsers.get(otherUserId.toString());
+      const receiverId = otherUserId.toString();
+      const receiverSocketId = onlineUsers.get(receiverId);
+
+      console.log(`Sending message from ${data.senderId} to ${receiverId}`);
+      console.log(`Receiver Socket ID: ${receiverSocketId || 'OFFLINE'}`);
+
       if (receiverSocketId) {
         io.to(receiverSocketId).emit('receive_message', newMessage);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error sending message:', err);
     }
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+    console.log(`User disconnected: ${socket.id}`);
     // Find userId by socketId
     for (const [userId, socketId] of onlineUsers.entries()) {
       if (socketId === socket.id) {
         onlineUsers.delete(userId);
         io.emit('user_offline', userId);
+        console.log(`User offline: ${userId}`);
         break;
       }
     }
