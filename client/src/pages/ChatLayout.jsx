@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
+import { useSound } from '../context/SoundContext';
 import ChatList from '../components/organisms/ChatList';
 import ChatWindow from '../components/organisms/ChatWindow';
 import ProfileSection from '../components/organisms/ProfileSection';
@@ -15,6 +16,7 @@ import './ChatLayout.css';
 const ChatLayout = () => {
     const { user, logout, updateProfile } = useAuth();
     const { socket, onlineUsers } = useSocket();
+    const { playSound } = useSound();
     const [chats, setChats] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -58,6 +60,8 @@ const ChatLayout = () => {
         if (!socket) return;
 
         socket.on('receive_message', (message) => {
+            playSound('received'); // Play received sound
+
             if (activeChat && message.chatId === activeChat.id) {
                 setMessages(prev => {
                     // Check if we have an optimistic message with the same content (simple deduplication)
@@ -74,7 +78,8 @@ const ChatLayout = () => {
                                     id: message._id,
                                     content: message.content,
                                     senderId: message.senderId,
-                                    time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                    time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                    status: msg.status
                                 }
                                 : msg
                         );
@@ -84,7 +89,8 @@ const ChatLayout = () => {
                         id: message._id,
                         content: message.content,
                         senderId: message.senderId,
-                        time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        status: message.status
                     }];
                 });
 
@@ -112,7 +118,7 @@ const ChatLayout = () => {
         });
 
         return () => socket.off('receive_message');
-    }, [socket, activeChat]);
+    }, [socket, activeChat, playSound]);
 
     const markChatAsRead = async (chatId) => {
         try {
@@ -181,6 +187,8 @@ const ChatLayout = () => {
 
     const handleSendMessage = (content) => {
         if (!socket || !activeChat) return;
+
+        playSound('sent'); // Play sent sound
 
         // Optimistic Update: Show message immediately
         const tempId = Date.now();

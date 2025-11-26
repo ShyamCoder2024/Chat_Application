@@ -4,6 +4,8 @@ import Input from '../atoms/Input';
 import Button from '../atoms/Button';
 import Header from '../molecules/Header';
 import AvatarSelector from '../molecules/AvatarSelector';
+import { useSound } from '../../context/SoundContext';
+import { Volume2, VolumeX } from 'lucide-react';
 import './ProfileSection.css';
 
 const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
@@ -13,6 +15,7 @@ const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const { soundEnabled, setSoundEnabled } = useSound();
 
     const handleSave = async () => {
         setIsLoading(true);
@@ -33,14 +36,65 @@ const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
 
             <div className="profile-content">
                 {!isEditing ? (
-                    <div className="profile-header">
-                        <Avatar src={user?.profilePic} fallback={user?.name?.[0]} size="xlarge" />
-                        <div className="profile-info-display">
-                            <h2 className="profile-name">{user?.name}</h2>
-                            <p className="profile-phone">{user?.phone}</p>
-                            <p className="profile-bio">{user?.bio}</p>
+                    <>
+                        <div className="profile-header">
+                            <Avatar src={user?.profilePic} fallback={user?.name?.[0]} size="xlarge" />
+                            <div className="profile-info-display">
+                                <h2 className="profile-name">{user?.name}</h2>
+                                <p className="profile-phone">{user?.phone}</p>
+                                <p className="profile-bio">{user?.bio}</p>
+                            </div>
                         </div>
-                    </div>
+
+                        <div className="settings-section" style={{ marginTop: '24px', padding: '0 16px' }}>
+                            <h3 style={{ fontSize: '16px', marginBottom: '12px', color: 'var(--text-secondary)' }}>Settings</h3>
+                            <div className="setting-item" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '12px',
+                                backgroundColor: 'var(--color-white)',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(0,0,0,0.05)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    {soundEnabled ? <Volume2 size={20} color="var(--color-sage)" /> : <VolumeX size={20} color="var(--text-tertiary)" />}
+                                    <span style={{ color: 'var(--text-primary)' }}>Sound Notifications</span>
+                                </div>
+                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={soundEnabled}
+                                        onChange={(e) => setSoundEnabled(e.target.checked)}
+                                        style={{ opacity: 0, width: 0, height: 0 }}
+                                    />
+                                    <span className="slider round" style={{
+                                        position: 'absolute',
+                                        cursor: 'pointer',
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        backgroundColor: soundEnabled ? 'var(--color-sage)' : '#ccc',
+                                        transition: '.4s',
+                                        borderRadius: '34px'
+                                    }}>
+                                        <span style={{
+                                            position: 'absolute',
+                                            content: '""',
+                                            height: '16px',
+                                            width: '16px',
+                                            left: soundEnabled ? '20px' : '4px',
+                                            bottom: '4px',
+                                            backgroundColor: 'white',
+                                            transition: '.4s',
+                                            borderRadius: '50%'
+                                        }}></span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </>
                 ) : (
                     <div className="profile-form">
                         <AvatarSelector selectedAvatar={avatar} onSelect={setAvatar} />
