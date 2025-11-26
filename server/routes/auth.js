@@ -103,7 +103,7 @@ router.put('/profile/:userId', async (req, res) => {
 // Get Blocked Users
 router.get('/blocked/:userId', async (req, res) => {
     try {
-        const user = await User.findById(req.params.userId).populate('blockedUsers', 'firstName lastName phone profilePic');
+        const user = await User.findById(req.params.userId).populate('blockedUsers', 'firstName lastName name phone profilePic');
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
