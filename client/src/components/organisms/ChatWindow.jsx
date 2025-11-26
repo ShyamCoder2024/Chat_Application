@@ -25,12 +25,11 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     };
 
     useEffect(() => {
-        const otherUser = chat.userIds.find(u => u._id !== currentUserId);
-        if (otherUser && otherUser.publicKey) {
+        if (chat.publicKey) {
             const mySecretKey = localStorage.getItem('chat_secret_key');
             if (mySecretKey) {
                 try {
-                    const key = deriveSharedKey(mySecretKey, otherUser.publicKey);
+                    const key = deriveSharedKey(mySecretKey, chat.publicKey);
                     setSharedKey(key);
                 } catch (err) {
                     console.error("Error deriving shared key:", err);

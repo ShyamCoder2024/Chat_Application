@@ -71,6 +71,7 @@ const ChatLayout = () => {
                         : (otherUser?.name || otherUser?.phone || 'Unknown User'),
                     avatar: otherUser?.profilePic,
                     otherUserId: otherUser?._id,
+                    publicKey: otherUser?.publicKey,
                     lastSeen: otherUser?.lastSeen,
                     lastMessage: chat.lastMessage?.content || 'No messages yet',
                     time: chat.lastMessage?.timestamp ? new Date(chat.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
@@ -160,6 +161,7 @@ const ChatLayout = () => {
                                 : (otherUser?.name || otherUser?.phone || 'Unknown User'),
                             avatar: otherUser?.profilePic,
                             otherUserId: otherUser?._id,
+                            publicKey: otherUser?.publicKey,
                             lastSeen: otherUser?.lastSeen,
                             lastMessage: message.content,
                             time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -345,6 +347,7 @@ const ChatLayout = () => {
                     : (otherUser?.name || otherUser?.phone || 'Unknown User'),
                 avatar: otherUser?.profilePic,
                 otherUserId: otherUser?._id,
+                publicKey: otherUser?.publicKey,
                 lastSeen: otherUser?.lastSeen
             });
         } catch (err) {
