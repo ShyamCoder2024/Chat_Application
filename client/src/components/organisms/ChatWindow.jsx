@@ -10,7 +10,7 @@ import Button from '../atoms/Button';
 import { formatLastSeen, formatMessageDate } from '../../utils/dateUtils';
 import './ChatWindow.css';
 
-const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen, onReact }) => {
+const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen }) => {
     const [newMessage, setNewMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
@@ -111,7 +111,6 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     key={msg.id}
                     message={msg}
                     isSent={msg.senderId === currentUserId}
-                    onReact={onReact}
                 />
             );
         });

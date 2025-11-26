@@ -171,8 +171,7 @@ const ChatLayout = () => {
                 content: msg.content,
                 senderId: msg.senderId,
                 time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                status: msg.status,
-                reactions: msg.reactions
+                status: msg.status
             }));
             setMessages(formattedMessages);
         } catch (err) {
@@ -211,12 +210,7 @@ const ChatLayout = () => {
         });
     };
 
-    const handleReaction = (messageId, emoji) => {
-        if (!socket) return;
-        socket.emit('add_reaction', { messageId, userId: user._id, emoji });
-    };
-
-    // Listen for status updates and reactions
+    // Listen for status updates
     useEffect(() => {
         if (!socket) return;
 
@@ -226,18 +220,10 @@ const ChatLayout = () => {
             ));
         };
 
-        const handleReactionUpdated = ({ messageId, reactions }) => {
-            setMessages(prev => prev.map(msg =>
-                msg.id === messageId ? { ...msg, reactions } : msg
-            ));
-        };
-
         socket.on('message_status_update', handleStatusUpdate);
-        socket.on('reaction_updated', handleReactionUpdated);
 
         return () => {
             socket.off('message_status_update', handleStatusUpdate);
-            socket.off('reaction_updated', handleReactionUpdated);
         };
     }, [socket]);
 
@@ -431,7 +417,6 @@ const ChatLayout = () => {
                         onVisitProfile={handleVisitProfile}
                         isOnline={onlineUsers.has(activeChat.otherUserId)}
                         lastSeen={activeChat.lastSeen}
-                        onReact={handleReaction}
                     />
                 ) : (
                     <div className="empty-state animate-fade-in">
