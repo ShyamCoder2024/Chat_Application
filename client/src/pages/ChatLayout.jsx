@@ -269,15 +269,22 @@ const ChatLayout = () => {
         }
     };
 
-    const handleVisitProfile = () => {
+    const handleVisitProfile = async () => {
         if (!activeChat) return;
-        setTargetUserProfile({
-            name: activeChat.name,
-            phone: 'Hidden',
-            bio: 'Hey there! I am using MeetPune.',
-            profilePic: activeChat.avatar
-        });
-        setView('user-profile');
+
+        try {
+            const res = await fetch(`${API_URL}/api/users/${activeChat.otherUserId}`);
+            const data = await res.json();
+
+            if (res.ok) {
+                setTargetUserProfile(data);
+                setView('user-profile');
+            } else {
+                console.error("Failed to fetch user profile");
+            }
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     const closeNewChatModal = () => {

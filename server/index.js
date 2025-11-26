@@ -74,7 +74,14 @@ io.on('connection', (socket) => {
         $inc: { [`unreadCounts.${otherUserId}`]: 1 }
       });
 
-      io.to(data.chatId).emit('receive_message', newMessage);
+      // Emit to sender
+      socket.emit('receive_message', newMessage);
+
+      // Emit to receiver if online
+      const receiverSocketId = onlineUsers.get(otherUserId.toString());
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('receive_message', newMessage);
+      }
     } catch (err) {
       console.error(err);
     }
