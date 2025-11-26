@@ -38,7 +38,7 @@ const ChatLayout = () => {
                 const otherUser = chat.userIds.find(u => u._id !== user._id);
                 return {
                     id: chat._id,
-                    name: otherUser?.name || otherUser?.phone,
+                    name: otherUser?.name || otherUser?.phone || 'Unknown User',
                     avatar: otherUser?.profilePic,
                     otherUserId: otherUser?._id,
                     lastMessage: chat.lastMessage?.content || 'No messages yet',

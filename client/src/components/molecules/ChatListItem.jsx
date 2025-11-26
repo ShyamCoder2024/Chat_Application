@@ -18,7 +18,7 @@ const ChatListItem = ({
             className={`chat-list-item ${isActive ? 'active' : ''}`}
             onClick={onClick}
         >
-            <Avatar src={avatarSrc} fallback={name[0]} size="medium" status={isOnline ? 'online' : 'offline'} />
+            <Avatar src={avatarSrc} fallback={(name || '?')[0]} size="medium" status={isOnline ? 'online' : 'offline'} />
 
             <div className="chat-info">
                 <div className="chat-header">
