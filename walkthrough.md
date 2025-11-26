@@ -1,51 +1,26 @@
-# Walkthrough - Block/Unblock Chat Visibility
+# Walkthrough - Color Palette Update
 
-## Problem
-Previously, blocking a user did not remove them from the chat list. The user wanted blocked users to disappear from the chat list and reappear only when unblocked.
+I have updated the application's color palette to match the provided design image.
 
-## Solution
-I implemented backend filtering and frontend state updates to achieve this behavior.
+## Changes
 
-### Backend Changes
-Modified `server/routes/chat.js` to filter out chats involving blocked users in the `GET /api/chats/:userId` endpoint.
+### Color Palette
+I updated the CSS variables in `client/src/index.css` to reflect the new color scheme:
 
-```javascript
-// server/routes/chat.js
-const currentUser = await User.findById(req.params.userId);
-const blockedUserIds = new Set(currentUser.blockedUsers.map(id => id.toString()));
+- **Sage Green**: Updated to `#A1B26C`
+- **Warm Yellow**: Updated to `#F4DE79`
+- **Soft Blue**: Updated to `#BCC9EB`
+- **Soft Pink**: Updated to `#F2B1DC`
+- **Cream Background**: Updated to `#FAF2E5`
+- **Deep Black**: Updated to `#000000`
 
-// ... inside the loop ...
-if (otherUser) {
-    // Skip if this user is blocked
-    if (blockedUserIds.has(otherUser._id.toString())) {
-        continue;
-    }
-    // ...
-}
-```
+### Typography
+The application is already configured to use **Nimbus Sans** and **PP Mori** as primary and heading fonts respectively, with **Inter** and **Space Grotesk** as fallbacks. Since no new font files were provided, the application will continue to use these settings.
 
-### Frontend Changes
-Updated `client/src/pages/ChatLayout.jsx`:
+## Verification Results
 
-1.  **Immediate Removal:** When a user is blocked, the chat is immediately removed from the local `chats` state.
-    ```javascript
-    // handleBlockUser
-    setChats(prev => prev.filter(c => c.id !== activeChat.id));
-    ```
+### Automated Build
+- Ran `npm run build` successfully, confirming no syntax errors in the CSS updates.
 
-2.  **Auto-Refresh on Unblock:** Added a dependency on `view` to the `fetchChats` effect. When the user navigates back to the 'chats' view (e.g., after unblocking someone in the Profile section), the chat list is re-fetched, bringing back the unblocked user.
-    ```javascript
-    useEffect(() => {
-        if (view === 'chats') {
-            fetchChats();
-        }
-    }, [user, view]);
-    ```
-
-## Verification
-- **Scenario 1:** User blocks a contact.
-    - Result: The chat immediately disappears from the list and the user is returned to the main view.
-- **Scenario 2:** User goes to Profile -> Blocked Users and unblocks the contact.
-    - Result: When the user navigates back to the main chat list, the unblocked contact reappears.
-
-This ensures a smooth and intuitive experience for managing blocked contacts.
+### Visual Verification
+- The new colors should now be visible throughout the application, providing the requested "brush up" to the design.
