@@ -2,7 +2,9 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: var(--color-bg-secondary);
+    background-color: #FDFBF7;
+    background-image: radial-gradient(#E5E5E5 1px, transparent 1px);
+    background-size: 20px 20px;
     position: relative;
 }
 
@@ -12,17 +14,16 @@
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
 
 .input-area {
-    padding: 16px 24px;
-    background-color: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 16px 20px;
+    background-color: transparent;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 12px;
+    position: relative;
 }
 
 .message-form {
@@ -30,59 +31,63 @@
     display: flex;
     gap: 12px;
     align-items: center;
+    background-color: white;
+    padding: 6px 6px 6px 16px;
+    border-radius: 30px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .message-input {
     flex: 1;
-    border-radius: var(--radius-full);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    padding: 12px 20px;
-    background-color: var(--color-white);
+    border: none;
+    padding: 8px 0;
+    background-color: transparent;
     font-size: 15px;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease;
+    box-shadow: none;
+    outline: none;
 }
 
 .message-input:focus {
-    box-shadow: var(--shadow-md);
-    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: none;
+    border-color: transparent;
 }
 
-.send-btn,
 .attach-btn {
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
+    color: #999;
+    padding: 8px;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    transition: all 0.2s;
 }
 
-.send-btn:hover,
 .attach-btn:hover {
     background-color: rgba(0, 0, 0, 0.05);
-    color: var(--text-primary);
-    transform: translateY(-1px);
+    color: #666;
 }
 
 .send-btn {
-    background-color: var(--color-deep-black);
-    color: var(--color-white);
-}
-
-.send-btn:hover {
-    background-color: black;
+    background-color: #E0E0E0;
+    /* Default disabled-ish look */
     color: white;
-    box-shadow: var(--shadow-md);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border: none;
+    box-shadow: none;
 }
 
-.send-btn:disabled {
-    background-color: var(--text-disabled);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+.send-btn:not(:disabled) {
+    background-color: #8DA399;
+    /* Sage Green */
+    box-shadow: 0 2px 5px rgba(141, 163, 153, 0.4);
+}
+
+.send-btn:not(:disabled):hover {
+    background-color: #7A8F86;
+    transform: scale(1.05);
 }
 
 /* Date Separator */

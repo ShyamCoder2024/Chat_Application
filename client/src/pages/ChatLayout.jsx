@@ -106,6 +106,9 @@ const ChatLayout = () => {
             }
             // We don't call fetchChats() here to avoid overwriting local optimistic updates
             // But we might want to refresh the list order eventually
+
+            // Notify server that message is delivered
+            socket.emit('message_delivered', { messageId: message._id, userId: user._id });
         });
 
         return () => socket.off('receive_message');
