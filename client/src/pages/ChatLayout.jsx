@@ -236,6 +236,7 @@ const ChatLayout = () => {
                     chats={chats}
                     onSelectChat={handleSelectChat}
                     activeChatId={activeChat?.id}
+                    isLoading={chats.length === 0 && !activeChat} // Simple loading check
                 />
 
                 <div className="bottom-nav">
@@ -248,16 +249,18 @@ const ChatLayout = () => {
                 </div>
             </div>
 
-            <div className={`main-content ${view === 'chats' ? 'hidden-mobile' : ''}`}>
+            <div className={`main-content ${view === 'chats' ? 'hidden-mobile' : ''} animate-fade-in`}>
                 {view === 'profile' ? (
-                    <ProfileSection
-                        user={user}
-                        onLogout={logout}
-                        onSave={updateProfile}
-                        onBack={() => setView('chats')}
-                    />
+                    <div className="animate-pop-in">
+                        <ProfileSection
+                            user={user}
+                            onLogout={logout}
+                            onSave={updateProfile}
+                            onBack={() => setView('chats')}
+                        />
+                    </div>
                 ) : view === 'user-profile' ? (
-                    <div className="profile-section">
+                    <div className="profile-section animate-pop-in">
                         <div className="profile-header-nav" style={{ padding: '16px', borderBottom: '1px solid #eee' }}>
                             <Button variant="text" onClick={() => setView('chat')}>Back to Chat</Button>
                         </div>
@@ -282,7 +285,7 @@ const ChatLayout = () => {
                         isOnline={onlineUsers.has(activeChat.otherUserId)}
                     />
                 ) : (
-                    <div className="empty-state">
+                    <div className="empty-state animate-fade-in">
                         <p>Select a chat to start messaging</p>
                     </div>
                 )}

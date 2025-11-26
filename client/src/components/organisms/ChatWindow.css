@@ -1,7 +1,9 @@
 .chat-window {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: 100vh;
+    height: 100dvh;
+    /* Dynamic Viewport Height for mobile browsers */
     background-color: var(--color-white);
     position: relative;
 }

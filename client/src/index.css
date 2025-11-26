@@ -1,13 +1,18 @@
 :root {
-  /* Light Mode Colors (Default) */
-  --color-sage: #A8B89C;
-  --color-warm-yellow: #F4DE79;
-  --color-soft-blue: #BCD3E8;
-  --color-soft-pink: #F4BDD0;
-  --color-cream: #F9F5ED;
+  /* Light Mode Colors (Premium Sage & Cream) */
+  --color-sage: #8DA399;
+  /* Deeper, more sophisticated sage */
+  --color-warm-yellow: #E6D5B8;
+  /* Muted gold/sand */
+  --color-soft-blue: #B0C4DE;
+  --color-soft-pink: #E6C9C9;
+  --color-cream: #FDFBF7;
+  /* Richer cream */
   --color-white: #FFFFFF;
-  --color-deep-black: #000000;
-  --color-bg-secondary: #F0F0F0;
+  --color-deep-black: #1A1A1A;
+  /* Softer black */
+  --color-bg-secondary: #F7F5F0;
+  /* Warm gray/cream mix */
 
   /* Text Colors */
   --text-primary: #1A1A1A;
