@@ -26,6 +26,12 @@ const ChatLayout = () => {
     const [searchResult, setSearchResult] = useState(null); // State for user search result
     const [targetUserProfile, setTargetUserProfile] = useState(null);
 
+    // Ref to track chats for socket listener without re-subscribing
+    const chatsRef = useRef(chats);
+    useEffect(() => {
+        chatsRef.current = chats;
+    }, [chats]);
+
     // Fetch Chats
     useEffect(() => {
         fetchChats();
@@ -61,8 +67,11 @@ const ChatLayout = () => {
     useEffect(() => {
         if (!socket) return;
 
-        socket.on('receive_message', (message) => {
+        socket.on('receive_message', async (message) => {
             playSound('received'); // Play received sound
+
+            const currentChats = chatsRef.current;
+            const chatExists = currentChats.some(c => c.id === message.chatId);
 
             if (activeChat && message.chatId === activeChat.id) {
                 setMessages(prev => {
@@ -98,7 +107,7 @@ const ChatLayout = () => {
 
                 // Mark as read immediately if chat is open
                 markChatAsRead(activeChat.id);
-            } else {
+            } else if (chatExists) {
                 // Increment unread count if chat is not active
                 setChats(prevChats => prevChats.map(chat => {
                     if (chat.id === message.chatId) {
@@ -111,16 +120,38 @@ const ChatLayout = () => {
                     }
                     return chat;
                 }));
+            } else {
+                // New Chat! Fetch details and add to list
+                try {
+                    const res = await fetch(`${API_URL}/api/chats/single/${message.chatId}`);
+                    if (res.ok) {
+                        const newChatData = await res.json();
+                        const otherUser = newChatData.userIds.find(u => u._id !== user._id);
+                        const newChat = {
+                            id: newChatData._id,
+                            name: (otherUser?.firstName && otherUser?.lastName)
+                                ? `${otherUser.firstName} ${otherUser.lastName}`
+                                : (otherUser?.name || otherUser?.phone || 'Unknown User'),
+                            avatar: otherUser?.profilePic,
+                            otherUserId: otherUser?._id,
+                            lastSeen: otherUser?.lastSeen,
+                            lastMessage: message.content,
+                            time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            unreadCount: 1
+                        };
+                        setChats(prev => [newChat, ...prev]);
+                    }
+                } catch (err) {
+                    console.error("Error fetching new chat:", err);
+                }
             }
-            // We don't call fetchChats() here to avoid overwriting local optimistic updates
-            // But we might want to refresh the list order eventually
 
             // Notify server that message is delivered
             socket.emit('message_delivered', { messageId: message._id, userId: user._id });
         });
 
         return () => socket.off('receive_message');
-    }, [socket, activeChat, playSound]);
+    }, [socket, activeChat, playSound]); // Removed chats from dependency to avoid re-subscription loop
 
     const markChatAsRead = async (chatId) => {
         try {

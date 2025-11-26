@@ -71,6 +71,18 @@ router.get('/:userId', async (req, res) => {
     }
 });
 
+// Get Single Chat
+router.get('/single/:chatId', async (req, res) => {
+    try {
+        const chat = await Chat.findById(req.params.chatId)
+            .populate('userIds', 'firstName lastName name phone profilePic lastSeen');
+        if (!chat) return res.status(404).json({ error: 'Chat not found' });
+        res.json(chat);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Get Messages
 router.get('/:chatId/messages', async (req, res) => {
     try {
