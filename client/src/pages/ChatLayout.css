@@ -16,6 +16,7 @@
     flex-direction: column;
     flex-shrink: 0;
     transition: transform 0.3s ease;
+    will-change: transform;
 }
 
 .sidebar-header {
@@ -42,6 +43,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
+    will-change: transform;
 }
 
 .empty-state {
@@ -125,6 +127,8 @@
     border-radius: var(--radius-lg);
     width: 90%;
     max-width: 320px;
+    margin: auto;
+    /* Ensure centering */
     box-shadow: var(--shadow-lg);
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }

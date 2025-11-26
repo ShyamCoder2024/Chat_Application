@@ -57,10 +57,10 @@ export const AuthProvider = ({ children }) => {
 
     const updateProfile = async (updates) => {
         try {
-            const res = await fetch(`${API_URL}/api/auth/update`, {
+            const res = await fetch(`${API_URL}/api/auth/profile/${user._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user._id, ...updates })
+                body: JSON.stringify(updates)
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
