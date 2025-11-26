@@ -208,16 +208,21 @@
         flex-direction: column;
         height: auto;
         min-height: 100vh;
+        min-height: 100dvh;
+        /* Dynamic viewport height for mobile browsers */
+        overflow-y: auto;
     }
 
     .login-left {
-        padding: var(--spacing-xl);
+        padding: var(--spacing-lg);
         order: 2;
+        min-height: auto;
     }
 
     .login-right {
         flex: none;
-        height: 200px;
+        height: 180px;
+        min-height: 180px;
         order: 1;
     }
 
@@ -231,5 +236,11 @@
 
     .login-card {
         padding: 0;
+        margin-bottom: var(--spacing-2xl);
+    }
+
+    /* Ensure inputs are visible when keyboard opens */
+    .login-form {
+        margin-bottom: var(--spacing-3xl);
     }
 }
