@@ -506,7 +506,7 @@ const ChatLayout = () => {
                     fontSize: '12px',
                     zIndex: 9999
                 }}>
-                    Disconnected from server. Reconnecting...
+                    Disconnected. API: {API_URL} | Socket: {socket ? 'Init' : 'Null'}
                 </div>
             )}
             <div className={`sidebar ${view !== 'chats' ? 'hidden-mobile' : ''}`}>
