@@ -358,6 +358,81 @@ const ChatLayout = () => {
         setView('profile');
     };
 
+    // Mandatory Profile Update Logic
+    const [showMandatoryUpdate, setShowMandatoryUpdate] = useState(false);
+    const [updateFirstName, setUpdateFirstName] = useState('');
+    const [updateLastName, setUpdateLastName] = useState('');
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    useEffect(() => {
+        if (user && (!user.lastName || !user.firstName)) {
+            setShowMandatoryUpdate(true);
+            setUpdateFirstName(user.firstName || user.name || '');
+            setUpdateLastName(user.lastName || '');
+        } else {
+            setShowMandatoryUpdate(false);
+        }
+    }, [user]);
+
+    const handleMandatoryUpdate = async (e) => {
+        e.preventDefault();
+        if (!updateFirstName.trim() || !updateLastName.trim()) {
+            alert("Both First Name and Last Name are required.");
+            return;
+        }
+
+        setIsUpdating(true);
+        try {
+            await updateProfile({
+                firstName: updateFirstName,
+                lastName: updateLastName,
+                bio: user.bio || '',
+                profilePic: user.profilePic || ''
+            });
+            setShowMandatoryUpdate(false);
+        } catch (err) {
+            console.error("Failed to update profile", err);
+            alert("Failed to update profile. Please try again.");
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    if (showMandatoryUpdate) {
+        return (
+            <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+                <div className="modal-content" style={{ maxWidth: '400px', width: '90%', padding: '24px' }}>
+                    <h2 style={{ marginBottom: '16px', color: '#2c3e50' }}>Action Required</h2>
+                    <p style={{ marginBottom: '24px', color: '#7f8c8d' }}>
+                        To continue using MeetPune, please update your profile with your First and Last Name. This helps your friends find you easily!
+                    </p>
+                    <form onSubmit={handleMandatoryUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>First Name</label>
+                            <Input
+                                value={updateFirstName}
+                                onChange={(e) => setUpdateFirstName(e.target.value)}
+                                placeholder="First Name"
+                                autoFocus
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>Last Name</label>
+                            <Input
+                                value={updateLastName}
+                                onChange={(e) => setUpdateLastName(e.target.value)}
+                                placeholder="Last Name"
+                            />
+                        </div>
+                        <Button type="submit" variant="primary" className="full-width" disabled={isUpdating}>
+                            {isUpdating ? 'Saving...' : 'Save & Continue'}
+                        </Button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="app-layout">
             <div className={`sidebar ${view !== 'chats' ? 'hidden-mobile' : ''}`}>
