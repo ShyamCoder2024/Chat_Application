@@ -44,7 +44,15 @@ const ChatLayout = () => {
     const fetchChats = async () => {
         try {
             setError(null);
-            const res = await fetch(`${API_URL}/api/chats/${user._id}`);
+            // Add 5 second timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+            const res = await fetch(`${API_URL}/api/chats/${user._id}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
             if (!res.ok) {
                 throw new Error(`Failed to load chats: ${res.status}`);
             }
@@ -68,7 +76,11 @@ const ChatLayout = () => {
             setChats(formattedChats);
         } catch (err) {
             console.error(err);
-            setError("Could not connect to server. Please check your internet connection.");
+            if (err.name === 'AbortError') {
+                setError("Connection timed out. Is your server running?");
+            } else {
+                setError("Could not connect to server. If you are on Vercel, ensure your backend is deployed.");
+            }
         }
     };
 
