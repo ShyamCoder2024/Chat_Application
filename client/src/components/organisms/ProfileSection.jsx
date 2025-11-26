@@ -46,51 +46,20 @@ const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
                             </div>
                         </div>
 
-                        <div className="settings-section" style={{ marginTop: '24px', padding: '0 16px' }}>
-                            <h3 style={{ fontSize: '16px', marginBottom: '12px', color: 'var(--text-secondary)' }}>Settings</h3>
-                            <div className="setting-item" style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '12px',
-                                backgroundColor: 'var(--color-white)',
-                                borderRadius: '12px',
-                                border: '1px solid rgba(0,0,0,0.05)'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    {soundEnabled ? <Volume2 size={20} color="var(--color-sage)" /> : <VolumeX size={20} color="var(--text-tertiary)" />}
-                                    <span style={{ color: 'var(--text-primary)' }}>Sound Notifications</span>
+                        <div className="settings-section">
+                            <h3 className="settings-title">Settings</h3>
+                            <div className="setting-item">
+                                <div className="setting-info">
+                                    {soundEnabled ? <Volume2 size={20} className="setting-icon active" /> : <VolumeX size={20} className="setting-icon" />}
+                                    <span className="setting-label">Sound Notifications</span>
                                 </div>
-                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
+                                <label className="toggle-switch">
                                     <input
                                         type="checkbox"
                                         checked={soundEnabled}
                                         onChange={(e) => setSoundEnabled(e.target.checked)}
-                                        style={{ opacity: 0, width: 0, height: 0 }}
                                     />
-                                    <span className="slider round" style={{
-                                        position: 'absolute',
-                                        cursor: 'pointer',
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        bottom: 0,
-                                        backgroundColor: soundEnabled ? 'var(--color-sage)' : '#ccc',
-                                        transition: '.4s',
-                                        borderRadius: '34px'
-                                    }}>
-                                        <span style={{
-                                            position: 'absolute',
-                                            content: '""',
-                                            height: '16px',
-                                            width: '16px',
-                                            left: soundEnabled ? '20px' : '4px',
-                                            bottom: '4px',
-                                            backgroundColor: 'white',
-                                            transition: '.4s',
-                                            borderRadius: '50%'
-                                        }}></span>
-                                    </span>
+                                    <span className="slider"></span>
                                 </label>
                             </div>
                         </div>

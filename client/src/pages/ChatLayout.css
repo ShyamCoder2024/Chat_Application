@@ -46,6 +46,10 @@
     will-change: transform;
 }
 
+:root[data-theme='dark'] .main-content {
+    background-color: var(--color-deep-black) !important;
+}
+
 .empty-state {
     flex: 1;
     display: flex;
