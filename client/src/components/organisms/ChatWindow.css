@@ -111,9 +111,22 @@
 }
 
 /* Mobile Optimizations */
+/* Mobile Optimizations */
 @media (max-width: 768px) {
+    .chat-window {
+        padding-bottom: 80px;
+        /* Space for fixed input */
+    }
+
     .input-area {
         padding: 12px var(--spacing-md);
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background-color: var(--color-white);
+        border-top: 1px solid #E8E8E8;
     }
 
     .send-btn {

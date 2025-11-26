@@ -5,7 +5,10 @@ import './AvatarSelector.css';
 const AVATAR_SEEDS = [
     'Felix', 'Aneka', 'Zoe', 'Bear', 'Molly',
     'Buddy', 'Oliver', 'Bella', 'Leo', 'Max',
-    'Charlie', 'Lucy', 'Coco', 'Ruby', 'Luna'
+    'Charlie', 'Lucy', 'Coco', 'Ruby', 'Luna',
+    'Jack', 'Ginger', 'Lola', 'Sasha', 'Sam',
+    'Misty', 'Simba', 'Rocky', 'Jasper', 'Tigger',
+    'Shadow', 'Willow', 'Peanut', 'Kiki', 'Oreo'
 ];
 
 const AvatarSelector = ({ selectedAvatar, onSelect }) => {
