@@ -191,6 +191,8 @@ input:checked+.slider:before {
 @media (max-width: 768px) {
     .profile-content {
         padding: var(--spacing-xl) var(--spacing-md);
+        padding-bottom: 300px;
+        /* Space for keyboard */
     }
 
     .profile-header {

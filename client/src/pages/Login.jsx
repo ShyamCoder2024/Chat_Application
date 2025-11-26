@@ -89,7 +89,7 @@ const Login = () => {
                                     placeholder="Phone Number"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-                                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+
                                     autoFocus
                                 />
                                 <Input
@@ -97,7 +97,7 @@ const Login = () => {
                                     placeholder="Password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+
                                 />
                                 <Button type="submit" variant="primary" className="full-width">
                                     Login
@@ -113,14 +113,14 @@ const Login = () => {
                                                 placeholder="First Name"
                                                 value={firstName}
                                                 onChange={(e) => setFirstName(e.target.value)}
-                                                onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+
                                                 autoFocus
                                             />
                                             <Input
                                                 placeholder="Last Name"
                                                 value={lastName}
                                                 onChange={(e) => setLastName(e.target.value)}
-                                                onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+
                                             />
                                         </div>
                                         <Input

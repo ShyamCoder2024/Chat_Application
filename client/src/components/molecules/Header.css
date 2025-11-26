@@ -24,9 +24,15 @@
     border-radius: var(--radius-md);
     background-color: var(--color-cream);
     border: none;
-    display: flex;
-    align-items: center;
     justify-content: center;
+    display: none;
+    /* Hidden by default on desktop */
+}
+
+@media (max-width: 768px) {
+    .back-btn {
+        display: flex;
+    }
 }
 
 .header-avatar-container {

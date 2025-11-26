@@ -242,5 +242,7 @@
     /* Ensure inputs are visible when keyboard opens */
     .login-form {
         margin-bottom: var(--spacing-3xl);
+        padding-bottom: 300px;
+        /* Space for keyboard */
     }
 }
