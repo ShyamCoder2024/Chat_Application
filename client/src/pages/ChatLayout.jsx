@@ -127,7 +127,31 @@ const ChatLayout = () => {
         }
     };
 
+    // Handle System Back Button
+    useEffect(() => {
+        const handlePopState = (event) => {
+            const state = event.state;
+            if (state && state.view) {
+                setView(state.view);
+            } else {
+                // Default to chats list if no state (root)
+                setView('chats');
+                setActiveChat(null);
+                setTargetUserProfile(null);
+                setSearchResult(null);
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
     const handleSelectChat = async (chat) => {
+        // Push state only if we're not already in this chat (basic check)
+        if (activeChat?.id !== chat.id) {
+            window.history.pushState({ view: 'chat' }, '');
+        }
+
         setActiveChat(chat);
         setView('chat');
         socket.emit('join_room', chat.id);
@@ -225,7 +249,7 @@ const ChatLayout = () => {
             const otherUser = data.userIds.find(u => u._id !== user._id);
             handleSelectChat({
                 id: data._id,
-                name: otherUser?.name || otherUser?.phone,
+                name: otherUser?.name || otherUser?.phone || 'Unknown User',
                 avatar: otherUser?.profilePic,
                 otherUserId: otherUser?._id
             });
@@ -262,7 +286,7 @@ const ChatLayout = () => {
                     })
                 });
                 alert('User blocked');
-                setView('chats');
+                window.history.back(); // Go back to list
             } catch (err) {
                 console.error(err);
             }
@@ -278,6 +302,7 @@ const ChatLayout = () => {
 
             if (res.ok) {
                 setTargetUserProfile(data);
+                window.history.pushState({ view: 'user-profile' }, '');
                 setView('user-profile');
             } else {
                 console.error("Failed to fetch user profile");
@@ -293,6 +318,11 @@ const ChatLayout = () => {
         setSearchResult(null);
     };
 
+    const handleMyProfileClick = () => {
+        window.history.pushState({ view: 'profile' }, '');
+        setView('profile');
+    };
+
     return (
         <div className="app-layout">
             <div className={`sidebar ${view !== 'chats' ? 'hidden-mobile' : ''}`}>
@@ -300,7 +330,7 @@ const ChatLayout = () => {
                     <h1 className="app-title">Messages</h1>
                     <div className="header-actions">
                         <ThemeToggle />
-                        <Button variant="secondary" size="icon" onClick={() => setView('profile')} title="My Profile">
+                        <Button variant="secondary" size="icon" onClick={handleMyProfileClick} title="My Profile">
                             <UserIcon size={24} />
                         </Button>
                         <Button variant="secondary" size="icon" onClick={() => setShowNewChatModal(true)} title="New Chat">
@@ -318,10 +348,12 @@ const ChatLayout = () => {
                 />
 
                 <div className="bottom-nav">
-                    <Button variant="text" className={view === 'chats' ? 'active-nav' : ''} onClick={() => setView('chats')}>
+                    <Button variant="text" className={view === 'chats' ? 'active-nav' : ''} onClick={() => {
+                        if (view !== 'chats') window.history.back();
+                    }}>
                         <MessageCircle size={24} />
                     </Button>
-                    <Button variant="text" className={view === 'profile' ? 'active-nav' : ''} onClick={() => setView('profile')}>
+                    <Button variant="text" className={view === 'profile' ? 'active-nav' : ''} onClick={handleMyProfileClick}>
                         <UserIcon size={24} />
                     </Button>
                 </div>
@@ -334,13 +366,13 @@ const ChatLayout = () => {
                             user={user}
                             onLogout={logout}
                             onSave={updateProfile}
-                            onBack={() => setView('chats')}
+                            onBack={() => window.history.back()}
                         />
                     </div>
                 ) : view === 'user-profile' ? (
                     <div className="profile-section animate-pop-in">
                         <div className="profile-header-nav" style={{ padding: '16px', borderBottom: '1px solid #eee' }}>
-                            <Button variant="text" onClick={() => setView('chat')}>Back to Chat</Button>
+                            <Button variant="text" onClick={() => window.history.back()}>Back to Chat</Button>
                         </div>
                         <div className="profile-content">
                             <div className="profile-header">
@@ -355,7 +387,7 @@ const ChatLayout = () => {
                         chat={activeChat}
                         messages={messages}
                         onSendMessage={handleSendMessage}
-                        onBack={() => setView('chats')}
+                        onBack={() => window.history.back()}
                         currentUserId={user._id}
                         onClearChat={handleClearChat}
                         onBlockUser={handleBlockUser}
