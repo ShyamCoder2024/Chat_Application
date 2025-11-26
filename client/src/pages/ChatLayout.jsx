@@ -493,6 +493,22 @@ const ChatLayout = () => {
 
     return (
         <div className="app-layout">
+            {!socket?.connected && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: '#e74c3c',
+                    color: 'white',
+                    textAlign: 'center',
+                    padding: '4px',
+                    fontSize: '12px',
+                    zIndex: 9999
+                }}>
+                    Disconnected from server. Reconnecting...
+                </div>
+            )}
             <div className={`sidebar ${view !== 'chats' ? 'hidden-mobile' : ''}`}>
                 <div className="sidebar-header">
                     <h1 className="app-title">Messages</h1>
