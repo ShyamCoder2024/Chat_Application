@@ -84,12 +84,14 @@
         position: absolute;
         height: 100%;
         z-index: 20;
+        transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s;
     }
 
     .hidden-mobile {
         transform: translateX(-100%);
         pointer-events: none;
         opacity: 0;
+        visibility: hidden !important;
     }
 
     .sidebar.hidden-mobile {
