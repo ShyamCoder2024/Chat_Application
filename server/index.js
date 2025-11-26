@@ -30,16 +30,28 @@ const io = new Server(server, {
   }
 });
 
-const onlineUsers = new Map(); // userId -> socketId
+const onlineUsers = new Map(); // userId -> Set<socketId>
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
   socket.on('login', (userId) => {
     const id = userId.toString();
-    onlineUsers.set(id, socket.id);
+
+    if (!onlineUsers.has(id)) {
+      onlineUsers.set(id, new Set());
+    }
+    const userSockets = onlineUsers.get(id);
+    userSockets.add(socket.id);
+
     console.log(`User logged in: ${id} (Socket: ${socket.id})`);
-    io.emit('user_online', id);
+    console.log(`Active sockets for user ${id}: ${userSockets.size}`);
+
+    // Only emit user_online if this is their first connection
+    if (userSockets.size === 1) {
+      io.emit('user_online', id);
+    }
+
     socket.emit('online_users', Array.from(onlineUsers.keys()));
   });
 
@@ -75,19 +87,30 @@ io.on('connection', (socket) => {
         $inc: { [`unreadCounts.${otherUserId}`]: 1 }
       });
 
-      // Emit to sender
-      socket.emit('receive_message', newMessage);
-
-      // Emit to receiver if online
-      const receiverId = otherUserId.toString();
-      const receiverSocketId = onlineUsers.get(receiverId);
-
-      console.log(`Sending message from ${data.senderId} to ${receiverId}`);
-      console.log(`Receiver Socket ID: ${receiverSocketId || 'OFFLINE'}`);
-
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit('receive_message', newMessage);
+      // 1. Emit to ALL of Sender's sockets (so other devices update)
+      const senderId = data.senderId.toString();
+      const senderSockets = onlineUsers.get(senderId);
+      if (senderSockets) {
+        senderSockets.forEach(socketId => {
+          io.to(socketId).emit('receive_message', newMessage);
+        });
       }
+
+      // 2. Emit to ALL of Receiver's sockets
+      const receiverId = otherUserId.toString();
+      const receiverSockets = onlineUsers.get(receiverId);
+
+      console.log(`Sending message from ${senderId} to ${receiverId}`);
+
+      if (receiverSockets && receiverSockets.size > 0) {
+        console.log(`Receiver has ${receiverSockets.size} active sockets`);
+        receiverSockets.forEach(socketId => {
+          io.to(socketId).emit('receive_message', newMessage);
+        });
+      } else {
+        console.log(`Receiver ${receiverId} is OFFLINE`);
+      }
+
     } catch (err) {
       console.error('Error sending message:', err);
     }
@@ -95,12 +118,20 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
-    // Find userId by socketId
-    for (const [userId, socketId] of onlineUsers.entries()) {
-      if (socketId === socket.id) {
-        onlineUsers.delete(userId);
-        io.emit('user_offline', userId);
-        console.log(`User offline: ${userId}`);
+
+    // Find which user this socket belonged to
+    for (const [userId, sockets] of onlineUsers.entries()) {
+      if (sockets.has(socket.id)) {
+        sockets.delete(socket.id);
+
+        // If no more sockets for this user, they are truly offline
+        if (sockets.size === 0) {
+          onlineUsers.delete(userId);
+          io.emit('user_offline', userId);
+          console.log(`User truly offline: ${userId}`);
+        } else {
+          console.log(`User ${userId} still has ${sockets.size} active sockets`);
+        }
         break;
       }
     }
