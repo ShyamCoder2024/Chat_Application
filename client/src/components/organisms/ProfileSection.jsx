@@ -6,22 +6,59 @@ import Header from '../molecules/Header';
 import AvatarSelector from '../molecules/AvatarSelector';
 import { useSound } from '../../context/SoundContext';
 import { Volume2, VolumeX } from 'lucide-react';
+import { API_URL } from '../../config';
 import './ProfileSection.css';
 
 const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
-    const [name, setName] = useState(user?.name || '');
+    const [firstName, setFirstName] = useState(user?.firstName || '');
+    const [lastName, setLastName] = useState(user?.lastName || '');
     const [bio, setBio] = useState(user?.bio || '');
     const [avatar, setAvatar] = useState(user?.profilePic || '');
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [blockedUsers, setBlockedUsers] = useState([]);
     const { soundEnabled, setSoundEnabled } = useSound();
+
+    useEffect(() => {
+        if (user?._id) {
+            fetchBlockedUsers();
+        }
+    }, [user]);
+
+    const fetchBlockedUsers = async () => {
+        try {
+            const res = await fetch(`${API_URL}/api/auth/blocked/${user._id}`);
+            if (res.ok) {
+                const data = await res.json();
+                setBlockedUsers(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch blocked users", err);
+        }
+    };
+
+    const handleUnblock = async (blockUserId) => {
+        try {
+            const res = await fetch(`${API_URL}/api/chats/unblock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user._id, blockUserId })
+            });
+
+            if (res.ok) {
+                setBlockedUsers(prev => prev.filter(u => u._id !== blockUserId));
+            }
+        } catch (err) {
+            console.error("Failed to unblock user", err);
+        }
+    };
 
     const handleSave = async () => {
         setIsLoading(true);
         setError('');
         try {
-            await onSave({ name, bio, profilePic: avatar });
+            await onSave({ firstName, lastName, bio, profilePic: avatar });
             setIsEditing(false);
         } catch (err) {
             setError('Failed to save profile. Please try again.');
@@ -38,9 +75,13 @@ const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
                 {!isEditing ? (
                     <>
                         <div className="profile-header">
-                            <Avatar src={user?.profilePic} fallback={user?.name?.[0]} size="xlarge" />
+                            <Avatar src={user?.profilePic} fallback={(user?.firstName || user?.name)?.[0]} size="xlarge" />
                             <div className="profile-info-display">
-                                <h2 className="profile-name">{user?.name}</h2>
+                                <h2 className="profile-name">
+                                    {(user?.firstName && user?.lastName)
+                                        ? `${user.firstName} ${user.lastName}`
+                                        : user?.name}
+                                </h2>
                                 <p className="profile-phone">{user?.phone}</p>
                                 <p className="profile-bio">{user?.bio}</p>
                             </div>
@@ -63,16 +104,57 @@ const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
                                 </label>
                             </div>
                         </div>
+
+                        <div className="settings-section">
+                            <h3 className="settings-title">Blocked Users</h3>
+                            {blockedUsers.length === 0 ? (
+                                <p className="no-blocked-users">No blocked users</p>
+                            ) : (
+                                <div className="blocked-users-list">
+                                    {blockedUsers.map(blockedUser => (
+                                        <div key={blockedUser._id} className="blocked-user-item">
+                                            <div className="blocked-user-info">
+                                                <Avatar src={blockedUser.profilePic} fallback={(blockedUser.firstName || blockedUser.name)?.[0]} size="medium" />
+                                                <div className="blocked-user-details">
+                                                    <span className="blocked-user-name">
+                                                        {(blockedUser.firstName && blockedUser.lastName)
+                                                            ? `${blockedUser.firstName} ${blockedUser.lastName}`
+                                                            : blockedUser.name}
+                                                    </span>
+                                                    <span className="blocked-user-phone">{blockedUser.phone}</span>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="secondary"
+                                                size="small"
+                                                onClick={() => handleUnblock(blockedUser._id)}
+                                                className="unblock-btn"
+                                            >
+                                                Unblock
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </>
                 ) : (
                     <div className="profile-form">
                         <AvatarSelector selectedAvatar={avatar} onSelect={setAvatar} />
                         <div className="form-group">
-                            <label>Name</label>
+                            <label>First Name</label>
                             <Input
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="Your Name"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                placeholder="First Name"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Last Name</label>
+                            <Input
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                placeholder="Last Name"
                             />
                         </div>
                         <div className="form-group">
@@ -98,7 +180,8 @@ const ProfileSection = ({ user, onSave, onLogout, onBack }) => {
                 {!isEditing && (
                     <div className="profile-actions">
                         <Button variant="secondary" onClick={() => {
-                            setName(user?.name || '');
+                            setFirstName(user?.firstName || '');
+                            setLastName(user?.lastName || '');
                             setBio(user?.bio || '');
                             setAvatar(user?.profilePic || '');
                             setIsEditing(true);

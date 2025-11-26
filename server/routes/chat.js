@@ -14,17 +14,20 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        // Sort userIds to ensure consistency (always [A, B] where A < B)
+        const userIds = [currentUserId, targetUser._id].sort();
+
         let chat = await Chat.findOne({
-            userIds: { $all: [currentUserId, targetUser._id] }
+            userIds: { $all: userIds }
         });
 
         if (!chat) {
             chat = await Chat.create({
-                userIds: [currentUserId, targetUser._id]
+                userIds: userIds
             });
         }
 
-        const populatedChat = await Chat.findById(chat._id).populate('userIds', 'name phone profilePic lastSeen');
+        const populatedChat = await Chat.findById(chat._id).populate('userIds', 'firstName lastName phone profilePic lastSeen');
         res.json(populatedChat);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -37,7 +40,7 @@ router.get('/:userId', async (req, res) => {
         const chats = await Chat.find({
             userIds: { $in: [req.params.userId] }
         })
-            .populate('userIds', 'name phone profilePic lastSeen')
+            .populate('userIds', 'firstName lastName phone profilePic lastSeen')
             .sort({ updatedAt: -1 });
 
         res.json(chats);
@@ -77,6 +80,19 @@ router.post('/block', async (req, res) => {
             $addToSet: { blockedUsers: blockUserId }
         });
         res.json({ message: 'User blocked' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Unblock User
+router.post('/unblock', async (req, res) => {
+    const { userId, blockUserId } = req.body;
+    try {
+        await User.findByIdAndUpdate(userId, {
+            $pull: { blockedUsers: blockUserId }
+        });
+        res.json({ message: 'User unblocked' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

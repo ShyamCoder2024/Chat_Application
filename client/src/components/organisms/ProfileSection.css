@@ -202,3 +202,80 @@ input:checked+.slider:before {
         /* Add space at bottom to prevent overlap */
     }
 }
+
+/* Blocked Users List */
+.no-blocked-users {
+    color: var(--text-tertiary);
+    font-size: 14px;
+    text-align: center;
+    padding: 16px;
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .no-blocked-users {
+    background-color: var(--color-bg-secondary);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.blocked-users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.blocked-user-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background-color: var(--color-white);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+[data-theme='dark'] .blocked-user-item {
+    background-color: var(--color-bg-secondary);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+.blocked-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.blocked-user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.blocked-user-name {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.blocked-user-phone {
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.unblock-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    background-color: rgba(255, 107, 107, 0.1);
+    color: var(--status-error);
+    border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
+.unblock-btn:hover {
+    background-color: rgba(255, 107, 107, 0.2);
+}
+
+[data-theme='dark'] .unblock-btn {
+    background-color: rgba(255, 107, 107, 0.15);
+    border-color: rgba(255, 107, 107, 0.3);
+}

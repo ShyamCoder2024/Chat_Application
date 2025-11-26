@@ -4,10 +4,10 @@ const User = require('../models/User');
 
 // Register
 router.post('/register', async (req, res) => {
-    const { phone, password, name, profilePic } = req.body;
+    const { phone, password, firstName, lastName, profilePic } = req.body;
 
-    if (!phone || !password) {
-        return res.status(400).json({ error: 'Phone and password are required' });
+    if (!phone || !password || !firstName || !lastName) {
+        return res.status(400).json({ error: 'All fields are required' });
     }
 
     try {
@@ -19,7 +19,8 @@ router.post('/register', async (req, res) => {
         const user = await User.create({
             phone,
             password,
-            name,
+            firstName,
+            lastName,
             profilePic: profilePic || ''
         });
 
@@ -31,7 +32,9 @@ router.post('/register', async (req, res) => {
             demoUser = await User.create({
                 phone: demoPhone,
                 password: 'demo',
-                name: 'Clara (AI)',
+                password: 'demo',
+                firstName: 'Clara',
+                lastName: '(AI)',
                 bio: 'I am here to help you get started!',
                 profilePic: 'https://api.dicebear.com/7.x/bottts/svg?seed=Clara'
             });
@@ -92,6 +95,19 @@ router.put('/profile/:userId', async (req, res) => {
             { new: true }
         );
         res.json({ user });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get Blocked Users
+router.get('/blocked/:userId', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).populate('blockedUsers', 'firstName lastName phone profilePic');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json(user.blockedUsers);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

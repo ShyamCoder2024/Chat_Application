@@ -12,7 +12,8 @@ const Login = () => {
 
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [avatar, setAvatar] = useState('https://api.dicebear.com/7.x/notionists/svg?seed=Felix');
 
     const [error, setError] = useState('');
@@ -23,7 +24,7 @@ const Login = () => {
         e.preventDefault();
         setError('');
 
-        if (!phone.trim() || !password.trim() || !name.trim()) {
+        if (!phone.trim() || !password.trim() || !firstName.trim() || !lastName.trim()) {
             setError('All fields are required');
             return;
         }
@@ -43,7 +44,7 @@ const Login = () => {
                 }
                 await login(phone, password);
             } else {
-                await register(phone, password, name, avatar);
+                await register(phone, password, firstName, lastName, avatar);
             }
             navigate('/');
         } catch (err) {
@@ -57,95 +58,135 @@ const Login = () => {
         setStep(1);
     };
 
+    // Get a subset of avatars for the showcase
+    const showcaseAvatars = [
+        'Felix', 'Aneka', 'Zoe', 'Bear', 'Molly',
+        'Buddy', 'Oliver', 'Bella', 'Leo', 'Max',
+        'Charlie', 'Lucy', 'Coco', 'Ruby', 'Luna'
+    ];
+
+    const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/notionists/svg?seed=${seed}&backgroundColor=e1ece5,f4e3b1,dce8f5,f9dce6`;
+
     return (
-        <div className="login-container">
-            <div className="login-card animate-pop-in">
-                <div className="login-header">
-                    <h1 className="app-name">MeetPune</h1>
-                    <p className="app-subtitle">Simple, secure messaging</p>
-                </div>
-                <p className="login-subtitle">
-                    {isLogin ? 'Welcome back!' : (step === 1 ? 'Create your account' : 'Choose your look')}
-                </p>
-
-                {error && <div className="login-error">{error}</div>}
-
-                <form onSubmit={handleSubmit} className="login-form">
-                    {isLogin ? (
-                        // LOGIN FORM
-                        <>
-                            <Input
-                                placeholder="Phone Number"
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                                autoFocus
-                            />
-                            <Input
-                                type="password"
-                                placeholder="Password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                            <Button type="submit" variant="primary" className="full-width">
-                                Login
-                            </Button>
-                        </>
-                    ) : (
-                        // REGISTER FORM
-                        <>
-                            {step === 1 ? (
-                                <>
-                                    <Input
-                                        placeholder="Your Name"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        autoFocus
-                                    />
-                                    <Input
-                                        placeholder="Phone Number"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                    />
-                                    <Input
-                                        type="password"
-                                        placeholder="Password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                    />
-                                    <Button type="button" variant="primary" className="full-width" onClick={handleNext}>
-                                        Next
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <AvatarSelector selectedAvatar={avatar} onSelect={setAvatar} />
-                                    <div className="form-actions-row">
-                                        <Button type="button" variant="text" onClick={() => setStep(1)}>
-                                            Back
-                                        </Button>
-                                        <Button type="submit" variant="primary" className="flex-1">
-                                            Complete Setup
-                                        </Button>
-                                    </div>
-                                </>
-                            )}
-                        </>
-                    )}
-
-                    <div className="auth-toggle">
-                        <span className="auth-toggle-text">
-                            {isLogin ? "Don't have an account? " : "Already have an account? "}
-                        </span>
-                        <Button
-                            type="button"
-                            variant="text"
-                            className="auth-toggle-btn"
-                            onClick={toggleMode}
-                        >
-                            {isLogin ? 'Register' : 'Login'}
-                        </Button>
+        <div className="login-page">
+            <div className="login-left">
+                <div className="login-card animate-pop-in">
+                    <div className="login-header">
+                        <h1 className="app-name">MeetPune</h1>
+                        <p className="app-subtitle">Simple, secure messaging</p>
                     </div>
-                </form>
+                    <p className="login-subtitle">
+                        {isLogin ? 'Welcome back!' : (step === 1 ? 'Create your account' : 'Choose your look')}
+                    </p>
+
+                    {error && <div className="login-error">{error}</div>}
+
+                    <form onSubmit={handleSubmit} className="login-form">
+                        {isLogin ? (
+                            // LOGIN FORM
+                            <>
+                                <Input
+                                    placeholder="Phone Number"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    autoFocus
+                                />
+                                <Input
+                                    type="password"
+                                    placeholder="Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                                <Button type="submit" variant="primary" className="full-width">
+                                    Login
+                                </Button>
+                            </>
+                        ) : (
+                            // REGISTER FORM
+                            <>
+                                {step === 1 ? (
+                                    <>
+                                        <div className="name-inputs" style={{ display: 'flex', gap: '10px' }}>
+                                            <Input
+                                                placeholder="First Name"
+                                                value={firstName}
+                                                onChange={(e) => setFirstName(e.target.value)}
+                                                autoFocus
+                                            />
+                                            <Input
+                                                placeholder="Last Name"
+                                                value={lastName}
+                                                onChange={(e) => setLastName(e.target.value)}
+                                            />
+                                        </div>
+                                        <Input
+                                            placeholder="Phone Number"
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value)}
+                                        />
+                                        <Input
+                                            type="password"
+                                            placeholder="Password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                        />
+                                        <Button type="button" variant="primary" className="full-width" onClick={handleNext}>
+                                            Next
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <AvatarSelector selectedAvatar={avatar} onSelect={setAvatar} />
+                                        <div className="form-actions-row">
+                                            <Button type="button" variant="text" onClick={() => setStep(1)}>
+                                                Back
+                                            </Button>
+                                            <Button type="submit" variant="primary" className="flex-1">
+                                                Complete Setup
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
+                            </>
+                        )}
+
+                        <div className="auth-toggle">
+                            <span className="auth-toggle-text">
+                                {isLogin ? "Don't have an account? " : "Already have an account? "}
+                            </span>
+                            <Button
+                                type="button"
+                                variant="text"
+                                className="auth-toggle-btn"
+                                onClick={toggleMode}
+                            >
+                                {isLogin ? 'Register' : 'Login'}
+                            </Button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div className="login-right">
+                <div className="avatar-showcase">
+                    {showcaseAvatars.map((seed, index) => (
+                        <div
+                            key={seed}
+                            className="floating-avatar"
+                            style={{
+                                animationDelay: `${index * 0.2}s`,
+                                top: `${Math.random() * 80 + 10}%`,
+                                left: `${Math.random() * 80 + 10}%`
+                            }}
+                        >
+                            <img src={getAvatarUrl(seed)} alt="Avatar" />
+                        </div>
+                    ))}
+                </div>
+                <div className="showcase-content">
+                    <h2>Connect with friends</h2>
+                    <p>Experience a new way of messaging with MeetPune.</p>
+                </div>
             </div>
         </div>
     );

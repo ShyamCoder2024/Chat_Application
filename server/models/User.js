@@ -11,9 +11,15 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    name: {
+    firstName: {
         type: String,
-        default: ''
+        required: true,
+        trim: true
+    },
+    lastName: {
+        type: String,
+        required: true,
+        trim: true
     },
     bio: {
         type: String,
@@ -31,6 +37,14 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }]
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+userSchema.virtual('fullName').get(function () {
+    return `${this.firstName} ${this.lastName}`;
+});
 
 module.exports = mongoose.model('User', userSchema);

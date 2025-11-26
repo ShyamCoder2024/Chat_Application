@@ -36,12 +36,12 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (phone, password, name, profilePic) => {
+    const register = async (phone, password, firstName, lastName, profilePic) => {
         try {
             const res = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, password, name, profilePic })
+                body: JSON.stringify({ phone, password, firstName, lastName, profilePic })
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);

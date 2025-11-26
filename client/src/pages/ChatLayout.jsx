@@ -40,7 +40,9 @@ const ChatLayout = () => {
                 const otherUser = chat.userIds.find(u => u._id !== user._id);
                 return {
                     id: chat._id,
-                    name: otherUser?.name || otherUser?.phone || 'Unknown User',
+                    name: (otherUser?.firstName && otherUser?.lastName)
+                        ? `${otherUser.firstName} ${otherUser.lastName}`
+                        : (otherUser?.name || otherUser?.phone || 'Unknown User'),
                     avatar: otherUser?.profilePic,
                     otherUserId: otherUser?._id,
                     lastSeen: otherUser?.lastSeen,
@@ -279,7 +281,9 @@ const ChatLayout = () => {
             const otherUser = data.userIds.find(u => u._id !== user._id);
             handleSelectChat({
                 id: data._id,
-                name: otherUser?.name || otherUser?.phone || 'Unknown User',
+                name: (otherUser?.firstName && otherUser?.lastName)
+                    ? `${otherUser.firstName} ${otherUser.lastName}`
+                    : (otherUser?.name || otherUser?.phone || 'Unknown User'),
                 avatar: otherUser?.profilePic,
                 otherUserId: otherUser?._id,
                 lastSeen: otherUser?.lastSeen
@@ -408,7 +412,11 @@ const ChatLayout = () => {
                         <div className="profile-content">
                             <div className="profile-header">
                                 <img src={targetUserProfile?.profilePic} alt="Profile" style={{ width: 120, height: 120, borderRadius: '50%', marginBottom: 16 }} />
-                                <h2 className="profile-name">{targetUserProfile?.name}</h2>
+                                <h2 className="profile-name">
+                                    {(targetUserProfile?.firstName && targetUserProfile?.lastName)
+                                        ? `${targetUserProfile.firstName} ${targetUserProfile.lastName}`
+                                        : targetUserProfile?.name}
+                                </h2>
                                 <p className="profile-bio">{targetUserProfile?.bio}</p>
                             </div>
                         </div>
@@ -468,7 +476,11 @@ const ChatLayout = () => {
                                 >
                                     <Avatar src={searchResult.profilePic} fallback={searchResult.name[0]} size="medium" />
                                     <div>
-                                        <h4 style={{ margin: 0 }}>{searchResult.name || 'Unknown'}</h4>
+                                        <h4 style={{ margin: 0 }}>
+                                            {(searchResult.firstName && searchResult.lastName)
+                                                ? `${searchResult.firstName} ${searchResult.lastName}`
+                                                : (searchResult.name || 'Unknown')}
+                                        </h4>
                                         <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>{searchResult.phone}</p>
                                     </div>
                                 </div>
