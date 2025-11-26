@@ -42,12 +42,15 @@ const ChatLayout = () => {
     }, [user, view]);
 
     const fetchChats = async () => {
+        if (!user) return;
         try {
             setError(null);
             // Add 5 second timeout
             const controller = new AbortController();
             // Increase timeout to 60s for Render cold starts
             const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+            console.log(`Fetching chats from: ${API_URL}/api/chats/${user._id}`);
 
             const res = await fetch(`${API_URL}/api/chats/${user._id}`, {
                 signal: controller.signal
@@ -78,9 +81,9 @@ const ChatLayout = () => {
         } catch (err) {
             console.error(err);
             if (err.name === 'AbortError') {
-                setError("Connection timed out. Is your server running?");
+                setError(`Connection timed out. Server: ${API_URL}`);
             } else {
-                setError("Could not connect to server. If you are on Vercel, ensure your backend is deployed.");
+                setError(`Connection failed. Server: ${API_URL}. Error: ${err.message}`);
             }
         }
     };

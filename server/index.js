@@ -38,6 +38,9 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
+// Health Check
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
