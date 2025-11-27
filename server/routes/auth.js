@@ -22,7 +22,9 @@ router.post('/register', async (req, res) => {
             firstName,
             lastName,
             profilePic: profilePic || '',
-            publicKey: publicKey || ''
+            publicKey: publicKey || '',
+            encryptedPrivateKey: req.body.encryptedPrivateKey || null,
+            iv: req.body.iv || null
         });
 
         // Create welcome chat for new user

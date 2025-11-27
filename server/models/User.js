@@ -40,6 +40,14 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    encryptedPrivateKey: {
+        type: String, // Encrypted Secret Key for Sync
+        default: null
+    },
+    iv: {
+        type: String, // Initialization Vector for Encryption
+        default: null
+    },
     blockedUsers: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
