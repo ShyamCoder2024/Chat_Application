@@ -1,4 +1,4 @@
-.app-layout {
+.chat-layout {
     display: flex;
     flex-direction: row;
     /* Explicitly row for desktop */
@@ -25,6 +25,14 @@
     z-index: 1;
 }
 
+/* Tablet Optimization */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 320px;
+        flex: 0 0 320px;
+    }
+}
+
 .main-content {
     flex: 1;
     min-width: 0;
@@ -39,7 +47,7 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-    .app-layout {
+    .chat-layout {
         flex-direction: column;
     }
 
