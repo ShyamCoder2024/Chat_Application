@@ -162,7 +162,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             }
 
             let displayMessage = msg;
-            if (msg.nonce && sharedKey) {
+            if (msg.nonce && sharedKey && !msg.isPlaintext) {
                 try {
                     const decryptedContent = decryptMessage(msg.content, msg.nonce, sharedKey);
                     displayMessage = { ...msg, content: decryptedContent };
@@ -170,7 +170,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     // console.error("Error decrypting message:", err);
                     displayMessage = { ...msg, content: '🔒 Encrypted message (Waiting for key...)' };
                 }
-            } else if (msg.nonce && !sharedKey) {
+            } else if (msg.nonce && !sharedKey && !msg.isPlaintext) {
                 // Encrypted but we don't have the key yet
                 displayMessage = { ...msg, content: '🔒 Loading secure message...' };
             } else if (!msg.nonce && msg.content) {

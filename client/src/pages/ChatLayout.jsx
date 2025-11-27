@@ -166,48 +166,36 @@ const ChatLayout = () => {
             const chatExists = currentChats.some(c => c.id === message.chatId);
 
             if (activeChat && message.chatId === activeChat.id) {
-                // Decrypt incoming message content for comparison
-                let decryptedContent = message.content;
-                if (message.nonce) {
-                    const mySecretKey = localStorage.getItem('chat_secret_key');
-                    if (mySecretKey && activeChat.publicKey) {
-                        try {
-                            const sharedKey = deriveSharedKey(mySecretKey, activeChat.publicKey);
-                            if (sharedKey) {
-                                decryptedContent = decryptMessage(message.content, message.nonce, sharedKey);
-                            }
-                        } catch (err) {
-                            console.error("Decryption failed for deduplication:", err);
-                        }
-                    }
-                }
-
                 setMessages(prev => {
-                    // Check if we have an optimistic message with the same content
+                    // Check if we have an optimistic message with the same NONCE or content
                     const isOptimistic = prev.some(msg =>
                         msg.isOptimistic &&
-                        msg.content === decryptedContent && // Compare with DECRYPTED content
-                        msg.senderId === message.senderId
+                        (
+                            (message.nonce && msg.nonce === message.nonce) || // Match by Nonce (Best)
+                            (msg.content === message.content) // Fallback to content (for legacy/unencrypted)
+                        )
                     );
 
                     if (isOptimistic) {
                         return prev.map(msg =>
-                            (msg.isOptimistic && msg.content === decryptedContent)
+                            (msg.isOptimistic && ((message.nonce && msg.nonce === message.nonce) || msg.content === message.content))
                                 ? {
                                     id: message._id,
-                                    content: decryptedContent, // Use decrypted content
+                                    content: msg.content, // Keep the plaintext we already have!
                                     nonce: message.nonce,
                                     senderId: message.senderId,
                                     time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                    status: msg.status
+                                    status: msg.status,
+                                    isPlaintext: true // Keep it marked as plaintext so we don't try to decrypt it again
                                 }
                                 : msg
                         );
                     }
 
+                    // If not optimistic, it's a new message from someone else (or a sync)
                     return [...prev, {
                         id: message._id,
-                        content: decryptedContent, // Use decrypted content
+                        content: message.content,
                         nonce: message.nonce,
                         senderId: message.senderId,
                         time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -361,10 +349,11 @@ const ChatLayout = () => {
         const optimisticMessage = {
             id: tempId,
             content: displayContent,
-            nonce: plaintext ? null : nonce, // If using plaintext, set nonce to null so ChatWindow doesn't try to decrypt
+            nonce: nonce, // Store the REAL nonce
             senderId: user._id,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            isOptimistic: true
+            isOptimistic: true,
+            isPlaintext: true // Flag to tell ChatWindow NOT to decrypt this
         };
 
         setMessages(prev => [...prev, optimisticMessage]);
