@@ -1,13 +1,17 @@
 .chat-window {
     display: flex;
     flex-direction: column;
+    flex: 1;
+    /* Expand to fill parent */
+    width: 100%;
+    /* Ensure full width */
     height: 100%;
+    /* Fallback */
     background-color: var(--color-cream);
     background-image: radial-gradient(var(--color-sage) 1px, transparent 1px);
     background-size: 20px 20px;
     position: relative;
     overflow: hidden;
-    /* Ensure no scroll on the window itself */
 }
 
 :root[data-theme='dark'] .chat-window {

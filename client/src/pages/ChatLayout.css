@@ -144,7 +144,9 @@
     }
 
     .chat-layout.mobile-view-chat .main-content {
-        transform: translateX(0);
+        transform: translateX(0) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
         /* Slide in */
     }
 
