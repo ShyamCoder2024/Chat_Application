@@ -42,7 +42,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             } else if (chat.otherUserId) {
                 // Self-healing: Fetch user profile if public key is missing
                 try {
-                    console.log("Missing public key, fetching user profile...", chat.otherUserId);
+                    // console.log("Missing public key, fetching user profile...", chat.otherUserId);
                     const res = await fetch(`${API_URL}/api/users/${chat.otherUserId}`);
                     if (res.ok) {
                         const userData = await res.json();

@@ -98,7 +98,7 @@ router.get('/single/:chatId', async (req, res) => {
 // Get Messages
 router.get('/:chatId/messages', async (req, res) => {
     try {
-        const { limit = 50, before } = req.query;
+        const { limit = 100, before } = req.query;
         const query = { chatId: req.params.chatId };
 
         if (before) {
