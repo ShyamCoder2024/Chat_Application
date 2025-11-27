@@ -200,14 +200,18 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                         const decryptedContent = decryptMessage(msg.content, msg.nonce, sharedKey);
                         displayMessage = { ...msg, content: decryptedContent };
                     } catch (err) {
-                        // Decryption failed
-                        console.error(`❌ Failed to decrypt message:`, err.message);
-                        displayMessage = { ...msg, content: '🔒 Could not decrypt this message' };
+                        // Decryption failed - likely due to key rotation/reset
+                        console.warn(`⚠️ Failed to decrypt message ${msg.id}:`, err.message);
+                        displayMessage = {
+                            ...msg,
+                            content: '🔒 Message unavailable (security key changed)',
+                            isSystemMessage: true // Add a flag for styling if needed
+                        };
                     }
                 } else {
                     // No shared key available yet
-                    console.warn(`⚠️  Waiting for encryption keys...`);
-                    displayMessage = { ...msg, content: '🔐 Waiting for encryption keys...' };
+                    console.warn(`⚠️  Waiting for encryption keys for ${chat.name}...`);
+                    displayMessage = { ...msg, content: '🔐 Verifying security keys...' };
                 }
             } else {
                 // Plaintext message

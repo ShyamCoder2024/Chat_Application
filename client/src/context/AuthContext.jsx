@@ -90,7 +90,15 @@ export const AuthProvider = ({ children }) => {
                 // Case 1: Server has the key. Decrypt and use it.
                 // This syncs the key across devices (Laptop <-> Mobile)
                 const decryptedKey = decryptSecretKey(data.user.encryptedPrivateKey, password, data.user.iv);
-                if (decryptedKey) {
+
+                // Validate Key Integrity
+                const isValidKey = (key) => {
+                    try {
+                        return key && key.length > 10 && /^[A-Za-z0-9+/=]+$/.test(key);
+                    } catch (e) { return false; }
+                };
+
+                if (decryptedKey && isValidKey(decryptedKey)) {
                     console.log("✅ Successfully decrypted key from server");
                     mySecretKey = decryptedKey;
                     myPublicKey = data.user.publicKey; // Trust server public key if we have the private key
