@@ -156,23 +156,31 @@
     display: flex;
     justify-content: center;
     margin-bottom: 16px;
-    opacity: 0.6;
+    opacity: 1;
+    /* Make fully visible */
 }
 
 .retention-notice p {
-    background-color: rgba(255, 240, 200, 0.5);
-    /* Subtle yellow tint */
-    color: var(--text-secondary);
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 11px;
+    background-color: rgba(255, 240, 200, 0.8);
+    /* More visible background */
+    color: #4a4a4a;
+    /* Darker text for contrast */
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 12px;
+    /* Slightly larger */
+    font-weight: 500;
+    /* Medium weight */
     text-align: center;
-    max-width: 80%;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    max-width: 85%;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    /* Subtle depth */
 }
 
 [data-theme='dark'] .retention-notice p {
-    background-color: rgba(139, 92, 246, 0.15);
-    color: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background-color: rgba(255, 215, 0, 0.15);
+    /* Gold tint for security feel */
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 215, 0, 0.3);
 }
