@@ -294,17 +294,20 @@ const ChatLayout = () => {
         }
     };
 
-    const handleSendMessage = (content, nonce = null) => {
+    const handleSendMessage = (content, nonce = null, plaintext = null) => {
         if (!socket || !activeChat) return;
 
         playSound('sent'); // Play sent sound
 
         // Optimistic Update: Show message immediately
+        // Use plaintext for local display if available, otherwise content
+        const displayContent = plaintext || content;
+
         const tempId = Date.now();
         const optimisticMessage = {
             id: tempId,
-            content,
-            nonce,
+            content: displayContent,
+            nonce: plaintext ? null : nonce, // If using plaintext, set nonce to null so ChatWindow doesn't try to decrypt
             senderId: user._id,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isOptimistic: true
@@ -316,7 +319,7 @@ const ChatLayout = () => {
         setChats(prev => prev.map(c =>
             c.id === activeChat.id ? {
                 ...c,
-                lastMessage: content, // We sent it, so we know the content (no need to decrypt our own send)
+                lastMessage: displayContent, // Use plaintext for preview!
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             } : c
         ));
@@ -324,7 +327,7 @@ const ChatLayout = () => {
         socket.emit('send_message', {
             chatId: activeChat.id,
             senderId: user._id,
-            content,
+            content, // Send ENCRYPTED content to server
             nonce
         });
     };

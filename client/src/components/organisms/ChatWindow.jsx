@@ -137,7 +137,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 }
             }
 
-            onSendMessage(messageToSend, nonce);
+            onSendMessage(messageToSend, nonce, newMessage);
             setNewMessage('');
             if (socket) {
                 socket.emit('stop_typing', { chatId: chat.id, userId: currentUserId });
