@@ -25,14 +25,23 @@
     background-color: var(--color-cream);
     border: none;
     justify-content: center;
-    display: none;
-    /* Hidden by default on desktop */
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-@media (max-width: 768px) {
-    .back-btn {
-        display: flex;
-    }
+.back-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .back-btn {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+[data-theme='dark'] .back-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15);
 }
 
 .header-avatar-container {

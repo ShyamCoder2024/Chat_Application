@@ -96,6 +96,8 @@
         border-right: none;
         transform: translateX(0);
         transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease;
+        backface-visibility: hidden;
+        perspective: 1000px;
     }
 
     .main-content {
@@ -110,6 +112,8 @@
         transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
         background-color: var(--color-white);
         /* Ensure opaque background */
+        backface-visibility: hidden;
+        perspective: 1000px;
     }
 
     /* View States */
