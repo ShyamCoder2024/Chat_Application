@@ -706,7 +706,7 @@ const ChatLayout = () => {
     }
 
     const getMobileViewClass = () => {
-        if (view === 'chat' || view === 'user-profile') return 'mobile-view-chat';
+        if (view === 'chat' || view === 'user-profile' || view === 'profile') return 'mobile-view-chat';
         return 'mobile-view-list';
     };
 

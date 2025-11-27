@@ -156,6 +156,14 @@
         backdrop-filter: blur(10px);
         border-top: 1px solid rgba(0, 0, 0, 0.05);
         transition: transform 0.3s ease;
+        padding-bottom: env(safe-area-inset-bottom);
+        /* Handle iPhone home bar */
+    }
+
+    /* Ensure chat list isn't covered by bottom nav */
+    .sidebar .chat-list {
+        padding-bottom: 80px;
+        /* Height of bottom nav + spacing */
     }
 
     /* Hide bottom nav when in chat view */
