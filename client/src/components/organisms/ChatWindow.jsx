@@ -149,7 +149,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             let messageToSend = newMessage;
             let nonce = null;
 
-            // Encrypt the message if we have a shared key
+            // STRICT E2EE: Only send if we have a shared key
             if (sharedKey) {
                 try {
                     const encrypted = encryptMessage(newMessage, sharedKey);
@@ -158,11 +158,13 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     console.log("✅ Message encrypted successfully");
                 } catch (err) {
                     console.error("❌ Error encrypting message:", err);
-                    // Fallback to plain text if encryption fails
-                    console.warn("⚠️  Sending as plaintext due to encryption error");
+                    alert("Encryption failed. Message was not sent for security reasons.");
+                    return;
                 }
             } else {
-                console.warn("⚠️  No shared key - sending message as plaintext");
+                console.warn("⚠️  No shared key - preventing plaintext send");
+                alert("Encryption keys are not ready yet. Please wait a moment or refresh the page.");
+                return;
             }
 
             onSendMessage(messageToSend, nonce, newMessage);

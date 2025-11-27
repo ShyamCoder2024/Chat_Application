@@ -100,16 +100,13 @@ export const AuthProvider = ({ children }) => {
                     localStorage.setItem(`chat_public_key_${data.user._id}`, myPublicKey);
                 } else {
                     console.error("❌ CRITICAL: Failed to decrypt key from server! Password might be wrong or encryption is corrupted.");
-                    // DO NOT generate new keys here! This would break all existing chats.
-                    // Instead, we fall through to check if we have local keys as backup.
+                    // STOP! Do not generate new keys. This would break all existing chats.
+                    throw new Error("Failed to decrypt your encryption keys. Please check your password or contact support. Do NOT generate new keys to avoid losing message history.");
                 }
-            }
-
-            if (!mySecretKey || !myPublicKey) {
-                console.log("🔐 Case 2: No keys available, generating NEW key pair");
-                console.warn("⚠️  WARNING: Generating new keys means old messages won't be decryptable!");
+            } else if (!mySecretKey || !myPublicKey) {
+                console.log("🔐 Case 2: No keys available anywhere, generating NEW key pair");
                 // Case 2: No key on server AND no key locally. Generate NEW keys.
-                // This happens for a brand new user (shouldn't happen if register works) or a legacy user on a new device with no server backup.
+                // This happens ONLY for a brand new user or if keys were never set up.
                 const keys = generateKeyPair();
                 mySecretKey = keys.secretKey;
                 myPublicKey = keys.publicKey;
@@ -126,9 +123,9 @@ export const AuthProvider = ({ children }) => {
                     publicKey: myPublicKey
                 }, data.user._id); // Pass ID explicitly as user state might not be set yet
                 console.log("✅ Keys uploaded to server");
-            } else if (!data.user.encryptedPrivateKey) {
+            } else {
                 console.log("🔐 Case 3: Have local keys but server doesn't, uploading to server...");
-                // Case 3: We have a local key, but server has nothing (Legacy User).
+                // Case 3: We have a local key, but server has nothing (Legacy User or sync failed previously).
                 // BACKUP EXISTING KEY TO SERVER so other devices can use it.
                 const { encryptedKey, iv } = encryptSecretKey(mySecretKey, password);
                 await updateProfile({
