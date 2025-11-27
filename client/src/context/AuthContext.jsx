@@ -69,25 +69,45 @@ export const AuthProvider = ({ children }) => {
             const data = await res.json();
             if (data.error) throw new Error(data.error);
 
+            console.log("🔐 E2EE Login Debug:", {
+                userId: data.user._id,
+                hasEncryptedKeyOnServer: !!data.user.encryptedPrivateKey,
+                hasIvOnServer: !!data.user.iv,
+                hasPublicKeyOnServer: !!data.user.publicKey
+            });
+
             let mySecretKey = localStorage.getItem(`chat_secret_key_${data.user._id}`);
             let myPublicKey = localStorage.getItem(`chat_public_key_${data.user._id}`);
 
+            console.log("🔐 Local Storage Keys:", {
+                hasSecretKey: !!mySecretKey,
+                hasPublicKey: !!myPublicKey
+            });
+
             // KEY SYNC LOGIC
             if (data.user.encryptedPrivateKey && data.user.iv) {
+                console.log("🔐 Case 1: Server has encrypted key, attempting to decrypt...");
                 // Case 1: Server has the key. Decrypt and use it.
                 // This syncs the key across devices (Laptop <-> Mobile)
                 const decryptedKey = decryptSecretKey(data.user.encryptedPrivateKey, password, data.user.iv);
                 if (decryptedKey) {
+                    console.log("✅ Successfully decrypted key from server");
                     mySecretKey = decryptedKey;
                     myPublicKey = data.user.publicKey; // Trust server public key if we have the private key
 
                     // Save to local storage
                     localStorage.setItem(`chat_secret_key_${data.user._id}`, mySecretKey);
                     localStorage.setItem(`chat_public_key_${data.user._id}`, myPublicKey);
+                } else {
+                    console.error("❌ CRITICAL: Failed to decrypt key from server! Password might be wrong or encryption is corrupted.");
+                    // DO NOT generate new keys here! This would break all existing chats.
+                    // Instead, we fall through to check if we have local keys as backup.
                 }
             }
 
             if (!mySecretKey || !myPublicKey) {
+                console.log("🔐 Case 2: No keys available, generating NEW key pair");
+                console.warn("⚠️  WARNING: Generating new keys means old messages won't be decryptable!");
                 // Case 2: No key on server AND no key locally. Generate NEW keys.
                 // This happens for a brand new user (shouldn't happen if register works) or a legacy user on a new device with no server backup.
                 const keys = generateKeyPair();
@@ -98,13 +118,16 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem(`chat_public_key_${data.user._id}`, myPublicKey);
 
                 // BACKUP NEW KEY TO SERVER
+                console.log("📤 Uploading new keys to server...");
                 const { encryptedKey, iv } = encryptSecretKey(mySecretKey, password);
                 await updateProfile({
                     encryptedPrivateKey: encryptedKey,
                     iv: iv,
                     publicKey: myPublicKey
                 }, data.user._id); // Pass ID explicitly as user state might not be set yet
+                console.log("✅ Keys uploaded to server");
             } else if (!data.user.encryptedPrivateKey) {
+                console.log("🔐 Case 3: Have local keys but server doesn't, uploading to server...");
                 // Case 3: We have a local key, but server has nothing (Legacy User).
                 // BACKUP EXISTING KEY TO SERVER so other devices can use it.
                 const { encryptedKey, iv } = encryptSecretKey(mySecretKey, password);
@@ -113,20 +136,28 @@ export const AuthProvider = ({ children }) => {
                     iv: iv,
                     publicKey: myPublicKey
                 }, data.user._id);
+                console.log("✅ Local keys uploaded to server");
             }
 
             // Ensure server has the correct public key (redundant check but safe)
             if (data.user.publicKey !== myPublicKey) {
+                console.log("🔐 Updating public key on server to match local...");
                 await updateProfile({ publicKey: myPublicKey }, data.user._id);
                 data.user.publicKey = myPublicKey;
             }
+
+            console.log("✅ E2EE Login Complete:", {
+                hasSecretKey: !!mySecretKey,
+                hasPublicKey: !!myPublicKey,
+                publicKeyPreview: myPublicKey?.substring(0, 20) + '...'
+            });
 
             setSecretKey(mySecretKey);
             setUser(data.user);
             localStorage.setItem('user', JSON.stringify(data.user));
             return data.user;
         } catch (err) {
-            console.error("Login error:", err);
+            console.error("❌ Login error:", err);
             throw err;
         }
     };

@@ -32,7 +32,10 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             if (!chat) return;
 
             const mySecretKey = secretKey;
-            if (!mySecretKey) return;
+            if (!mySecretKey) {
+                console.error("❌ E2EE Error: No secret key available for current user");
+                return;
+            }
 
             let keyDerived = false;
 
@@ -41,30 +44,44 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             // the other user re-installed the app or logged in on a new device.
             if (chat.otherUserId) {
                 try {
+                    console.log(`🔐 Fetching public key for user ${chat.name}...`);
                     const res = await fetch(`${API_URL}/api/users/${chat.otherUserId}`);
                     if (res.ok) {
                         const userData = await res.json();
                         if (userData.publicKey) {
                             const key = deriveSharedKey(mySecretKey, userData.publicKey);
                             if (key) {
+                                console.log(`✅ Shared key derived successfully for ${chat.name}`);
                                 setSharedKey(key);
                                 keyDerived = true;
+                            } else {
+                                console.error(`❌ Failed to derive shared key for ${chat.name}`);
                             }
+                        } else {
+                            console.error(`❌ User ${chat.name} has NO public key on server!`);
                         }
                     }
                 } catch (err) {
-                    console.error("Error fetching fresh public key:", err);
+                    console.error("❌ Error fetching fresh public key:", err);
                 }
             }
 
             // 2. Fallback to the key passed in props if fetch failed or didn't yield a key
             if (!keyDerived && chat.publicKey) {
                 try {
+                    console.log(`🔐 Using cached public key for ${chat.name}`);
                     const key = deriveSharedKey(mySecretKey, chat.publicKey);
-                    setSharedKey(key);
+                    if (key) {
+                        console.log(`✅ Shared key derived (from cache) for ${chat.name}`);
+                        setSharedKey(key);
+                    } else {
+                        console.error(`❌ Failed to derive shared key (from cache) for ${chat.name}`);
+                    }
                 } catch (err) {
-                    console.error("Error deriving shared key:", err);
+                    console.error("❌ Error deriving shared key:", err);
                 }
+            } else if (!keyDerived) {
+                console.error(`❌ CRITICAL: Cannot derive shared key for ${chat.name} - no public key available!`);
             }
         };
 
@@ -175,17 +192,25 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 try {
                     const decryptedContent = decryptMessage(msg.content, msg.nonce, sharedKey);
                     displayMessage = { ...msg, content: decryptedContent };
+                    // console.log(`✅ Decrypted message ${msg.id}`);
                 } catch (err) {
                     // Decryption failed with existing key -> Key mismatch or corruption
+                    console.error(`❌ Failed to decrypt message ${msg.id}:`, err.message);
+                    console.error(`   Possible causes: 
+                        1. Sender regenerated their keys (lost localStorage or logged in on new device)
+                        2. You regenerated your keys
+                        3. Message was encrypted with a different key pair`);
                     displayMessage = { ...msg, content: '🔒 Encrypted message' };
                 }
             } else if (msg.nonce && !sharedKey && !msg.isPlaintext) {
                 // Encrypted but we don't have the key yet
+                console.warn(`⚠️  Cannot decrypt message ${msg.id}: No shared key available`);
                 displayMessage = { ...msg, content: '🔒 Loading secure message...' };
             } else if (!msg.nonce && msg.content) {
                 // Legacy message (not encrypted) or system message
                 // Heuristic: If it looks like an encrypted string (long, no spaces), hide it
                 if (!msg.content.includes(' ') && msg.content.length > 20) {
+                    console.warn(`⚠️  Message ${msg.id} looks encrypted but has no nonce (legacy)`);
                     displayMessage = { ...msg, content: '🔒 Encrypted message (Legacy)' };
                 } else {
                     displayMessage = msg;
