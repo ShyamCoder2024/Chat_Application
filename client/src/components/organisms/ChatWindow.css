@@ -50,10 +50,9 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    position: sticky;
-    bottom: 0;
-    z-index: 20;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+    /* Prevent shrinking */
 }
 
 .message-form {
