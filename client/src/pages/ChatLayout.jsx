@@ -11,35 +11,14 @@ import Avatar from '../components/atoms/Avatar'; // Import Avatar for search res
 import { Plus, MessageCircle, User as UserIcon, Search } from 'lucide-react';
 import ThemeToggle from '../components/atoms/ThemeToggle';
 import { API_URL } from '../config';
+import { deriveSharedKey, decryptMessage } from '../utils/crypto';
 import './ChatLayout.css';
 
 const ChatLayout = () => {
     const { user, logout, updateProfile } = useAuth();
-    const { socket, onlineUsers } = useSocket();
-    const { playSound } = useSound();
-    const [chats, setChats] = useState([]);
-    const [activeChat, setActiveChat] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [view, setView] = useState('chats'); // chats | chat | profile | user-profile
-    const [showNewChatModal, setShowNewChatModal] = useState(false);
-    const [newChatPhone, setNewChatPhone] = useState('');
-    const [searchResult, setSearchResult] = useState(null); // State for user search result
-    const [targetUserProfile, setTargetUserProfile] = useState(null);
+    // ... (existing hooks)
 
-    // Ref to track chats for socket listener without re-subscribing
-    const chatsRef = useRef(chats);
-    useEffect(() => {
-        chatsRef.current = chats;
-    }, [chats]);
-
-    const [error, setError] = useState(null);
-
-    // Fetch Chats
-    useEffect(() => {
-        if (view === 'chats') {
-            fetchChats();
-        }
-    }, [user, view]);
+    // ...
 
     const fetchChats = async () => {
         if (!user) return;
@@ -61,9 +40,26 @@ const ChatLayout = () => {
                 throw new Error(`Failed to load chats: ${res.status}`);
             }
             const data = await res.json();
+            const mySecretKey = localStorage.getItem('chat_secret_key');
 
             const formattedChats = data.map(chat => {
                 const otherUser = chat.userIds.find(u => u._id !== user._id);
+
+                let lastMessageContent = chat.lastMessage?.content || 'No messages yet';
+
+                // Decrypt last message if encrypted
+                if (chat.lastMessage?.nonce && mySecretKey && otherUser?.publicKey) {
+                    try {
+                        const sharedKey = deriveSharedKey(mySecretKey, otherUser.publicKey);
+                        if (sharedKey) {
+                            lastMessageContent = decryptMessage(chat.lastMessage.content, chat.lastMessage.nonce, sharedKey);
+                        }
+                    } catch (err) {
+                        // console.error("Error decrypting preview:", err);
+                        lastMessageContent = '🔒 Encrypted message';
+                    }
+                }
+
                 return {
                     id: chat._id,
                     name: (otherUser?.firstName && otherUser?.lastName)
@@ -73,7 +69,7 @@ const ChatLayout = () => {
                     otherUserId: otherUser?._id,
                     publicKey: otherUser?.publicKey,
                     lastSeen: otherUser?.lastSeen,
-                    lastMessage: chat.lastMessage?.content || 'No messages yet',
+                    lastMessage: lastMessageContent,
                     time: chat.lastMessage?.timestamp ? new Date(chat.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
                     unreadCount: chat.unreadCounts ? (chat.unreadCounts[user._id] || 0) : 0
                 };
@@ -139,9 +135,27 @@ const ChatLayout = () => {
                 // Increment unread count if chat is not active
                 setChats(prevChats => prevChats.map(chat => {
                     if (chat.id === message.chatId) {
+                        let previewContent = message.content;
+                        // Decrypt preview if needed
+                        if (message.nonce) {
+                            const mySecretKey = localStorage.getItem('chat_secret_key');
+                            if (mySecretKey && chat.publicKey) {
+                                try {
+                                    const sharedKey = deriveSharedKey(mySecretKey, chat.publicKey);
+                                    if (sharedKey) {
+                                        previewContent = decryptMessage(message.content, message.nonce, sharedKey);
+                                    }
+                                } catch (err) {
+                                    previewContent = '🔒 Encrypted message';
+                                }
+                            } else {
+                                previewContent = '🔒 Encrypted message';
+                            }
+                        }
+
                         return {
                             ...chat,
-                            lastMessage: message.content,
+                            lastMessage: previewContent,
                             time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                             unreadCount: (chat.unreadCount || 0) + 1
                         };
@@ -269,7 +283,7 @@ const ChatLayout = () => {
         setChats(prev => prev.map(c =>
             c.id === activeChat.id ? {
                 ...c,
-                lastMessage: content, // Note: This will be encrypted text in preview if E2EE is on
+                lastMessage: content, // We sent it, so we know the content (no need to decrypt our own send)
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             } : c
         ));

@@ -108,7 +108,8 @@ io.on('connection', (socket) => {
         lastMessage: {
           content: data.content,
           senderId: data.senderId,
-          timestamp: newMessage.createdAt
+          timestamp: newMessage.createdAt,
+          nonce: data.nonce || null
         },
         $inc: { [`unreadCounts.${otherUserId}`]: 1 }
       }).catch(err => console.error('Error updating chat metadata:', err));
