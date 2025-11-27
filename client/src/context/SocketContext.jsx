@@ -20,7 +20,15 @@ export const SocketProvider = ({ children }) => {
             });
             setSocket(newSocket);
 
-            newSocket.emit('login', user._id.toString());
+            newSocket.on('connect', () => {
+                console.log("Socket connected, logging in...");
+                newSocket.emit('login', user._id.toString());
+            });
+
+            // Emit immediately in case already connected (though unlikely with new socket)
+            if (newSocket.connected) {
+                newSocket.emit('login', user._id.toString());
+            }
 
             newSocket.on('online_users', (users) => {
                 setOnlineUsers(new Set(users));

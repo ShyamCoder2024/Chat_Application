@@ -117,6 +117,40 @@ const ChatLayout = () => {
         }
     };
 
+    // Re-sync on socket reconnection
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleReconnect = () => {
+            console.log("Socket reconnected, refreshing data...");
+            fetchChats();
+            if (activeChat) {
+                socket.emit('join_room', activeChat.id);
+                // Re-fetch messages for active chat to catch up
+                fetch(`${API_URL}/api/chats/${activeChat.id}/messages`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const formattedMessages = data.map(msg => ({
+                            id: msg._id,
+                            content: msg.content,
+                            nonce: msg.nonce,
+                            senderId: msg.senderId,
+                            time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            status: msg.status
+                        }));
+                        setMessages(formattedMessages);
+                    })
+                    .catch(err => console.error("Error re-fetching messages:", err));
+            }
+        };
+
+        socket.on('connect', handleReconnect);
+
+        return () => {
+            socket.off('connect', handleReconnect);
+        };
+    }, [socket, activeChat]);
+
     // Socket Listeners
     useEffect(() => {
         if (!socket) return;
