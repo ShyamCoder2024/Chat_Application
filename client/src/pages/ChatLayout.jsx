@@ -329,7 +329,9 @@ const ChatLayout = () => {
             window.history.pushState({ view: 'chat' }, '');
         }
 
-        setActiveChat(chat);
+        // 1. Set initial chat state (optimistic)
+        let currentChat = chat;
+        setActiveChat(currentChat);
         setView('chat');
         socket.emit('join_room', chat.id);
 
@@ -337,6 +339,32 @@ const ChatLayout = () => {
         markChatAsRead(chat.id);
 
         try {
+            // 2. Fetch FRESH user details to get the latest Public Key
+            // This is critical for E2EE if the other user re-installed the app
+            if (chat.otherUserId) {
+                const userRes = await fetch(`${API_URL}/api/users/${chat.otherUserId}`);
+                if (userRes.ok) {
+                    const userData = await userRes.json();
+                    if (userData.publicKey && userData.publicKey !== chat.publicKey) {
+                        console.log("Updated public key for user:", userData.firstName);
+                        currentChat = {
+                            ...chat,
+                            publicKey: userData.publicKey,
+                            avatar: userData.profilePic,
+                            lastSeen: userData.lastSeen,
+                            name: (userData.firstName && userData.lastName)
+                                ? `${userData.firstName} ${userData.lastName}`
+                                : (userData.name || userData.phone || 'Unknown User')
+                        };
+                        setActiveChat(currentChat);
+
+                        // Update in chats list too to keep it in sync
+                        setChats(prev => prev.map(c => c.id === chat.id ? currentChat : c));
+                    }
+                }
+            }
+
+            // 3. Fetch Messages
             const res = await fetch(`${API_URL}/api/chats/${chat.id}/messages`);
             const data = await res.json();
             const formattedMessages = data.map(msg => ({
@@ -349,8 +377,8 @@ const ChatLayout = () => {
             }));
             setMessages(formattedMessages);
         } catch (err) {
-            console.error("Error fetching messages:", err);
-            setError("Failed to load messages. Please try again.");
+            console.error("Error fetching messages/user:", err);
+            setError("Failed to load chat. Please try again.");
         }
     };
 
