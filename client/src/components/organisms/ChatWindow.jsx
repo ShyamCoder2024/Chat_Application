@@ -43,17 +43,10 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         isInitialLoad.current = true;
     }, [chat.id]);
 
-    // Handle Mobile Keyboard (Visual Viewport)
+    // Reset initial load flag when chat changes
     useEffect(() => {
-        if (!window.visualViewport) return;
-
-        const handleResize = () => {
-            scrollToBottom('auto'); // Re-adjust instantly when keyboard opens
-        };
-
-        window.visualViewport.addEventListener('resize', handleResize);
-        return () => window.visualViewport.removeEventListener('resize', handleResize);
-    }, []);
+        isInitialLoad.current = true;
+    }, [chat.id]);
 
     // Socket Typing Listeners
     useEffect(() => {
