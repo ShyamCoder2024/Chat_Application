@@ -33,10 +33,11 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
 
             const mySecretKey = secretKey;
             if (!mySecretKey) {
-                // No secret key - app will work in plaintext mode
+                console.warn("⚠️  No secret key - E2EE disabled for this session");
                 return;
             }
 
+            console.log(`🔐 Initializing E2EE for chat with ${chat.name}...`);
             let keyDerived = false;
 
             // Try to fetch the latest public key from the server
@@ -46,27 +47,37 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     if (res.ok) {
                         const userData = await res.json();
                         if (userData.publicKey) {
+                            console.log(`📥 Fetched public key for ${chat.name}`);
                             const key = deriveSharedKey(mySecretKey, userData.publicKey);
                             if (key) {
+                                console.log(`✅ E2EE enabled for ${chat.name}`);
                                 setSharedKey(key);
                                 keyDerived = true;
+                            } else {
+                                console.error(`❌ Failed to derive shared key - key derivation returned null`);
                             }
+                        } else {
+                            console.error(`❌ User ${chat.name} has no public key on server - E2EE unavailable`);
                         }
                     }
                 } catch (err) {
-                    console.error("Error fetching public key:", err);
+                    console.error("❌ Error fetching public key:", err);
                 }
             }
 
             // Fallback to cached public key
             if (!keyDerived && chat.publicKey) {
                 try {
+                    console.log(`🔐 Using cached public key for ${chat.name}`);
                     const key = deriveSharedKey(mySecretKey, chat.publicKey);
                     if (key) {
+                        console.log(`✅ E2EE enabled (cached key) for ${chat.name}`);
                         setSharedKey(key);
+                    } else {
+                        console.error(`❌ Failed to derive shared key from cache`);
                     }
                 } catch (err) {
-                    console.error("Error deriving shared key:", err);
+                    console.error("❌ Error deriving shared key:", err);
                 }
             }
         };
@@ -138,22 +149,21 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             let messageToSend = newMessage;
             let nonce = null;
 
-            // TEMPORARY FIX: Disable E2EE encryption until key sync is fixed
-            // This allows users to communicate immediately
-            console.warn("⚠️ E2EE DISABLED TEMPORARILY - Sending message as plaintext");
-
-            /* ORIGINAL E2EE CODE - DISABLED FOR NOW
+            // Encrypt the message if we have a shared key
             if (sharedKey) {
                 try {
                     const encrypted = encryptMessage(newMessage, sharedKey);
                     messageToSend = encrypted.encrypted;
                     nonce = encrypted.nonce;
+                    console.log("✅ Message encrypted successfully");
                 } catch (err) {
-                    console.error("Error encrypting message:", err);
-                    // Fallback to plain text if encryption fails (or handle error)
+                    console.error("❌ Error encrypting message:", err);
+                    // Fallback to plain text if encryption fails
+                    console.warn("⚠️  Sending as plaintext due to encryption error");
                 }
+            } else {
+                console.warn("⚠️  No shared key - sending message as plaintext");
             }
-            */
 
             onSendMessage(messageToSend, nonce, newMessage);
             setNewMessage('');
@@ -181,20 +191,24 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
 
             let displayMessage = msg;
 
-            // SIMPLE LOGIC: Try to decrypt if we have keys, otherwise show as-is
-            if (msg.nonce && sharedKey && !msg.isPlaintext) {
-                try {
-                    const decryptedContent = decryptMessage(msg.content, msg.nonce, sharedKey);
-                    // Successfully decrypted
-                    displayMessage = { ...msg, content: decryptedContent };
-                } catch (err) {
-                    // Decryption failed - show the raw content
-                    // (might be plaintext that was incorrectly flagged as encrypted)
-                    console.warn(`Could not decrypt message ${msg._id}, showing raw content`);
-                    displayMessage = { ...msg, content: msg.content };
+            // Try to decrypt if message has nonce (is encrypted)
+            if (msg.nonce && !msg.isPlaintext) {
+                if (sharedKey) {
+                    try {
+                        const decryptedContent = decryptMessage(msg.content, msg.nonce, sharedKey);
+                        displayMessage = { ...msg, content: decryptedContent };
+                    } catch (err) {
+                        // Decryption failed
+                        console.error(`❌ Failed to decrypt message:`, err.message);
+                        displayMessage = { ...msg, content: '🔒 Could not decrypt this message' };
+                    }
+                } else {
+                    // No shared key available yet
+                    console.warn(`⚠️  Waiting for encryption keys...`);
+                    displayMessage = { ...msg, content: '🔐 Waiting for encryption keys...' };
                 }
             } else {
-                // No nonce = plaintext, or no shared key yet
+                // Plaintext message
                 displayMessage = msg;
             }
 
