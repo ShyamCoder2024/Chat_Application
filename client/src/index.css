@@ -85,24 +85,25 @@
   /* Remove gray tap box on mobile */
 }
 
-html,
-body {
+html {
   height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  /* Prevent body scroll */
-  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   background-color: var(--color-cream);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
+  overflow: hidden;
+  overscroll-behavior: none;
+  position: fixed;
+  width: 100%;
 }
 
 /* Animations */
