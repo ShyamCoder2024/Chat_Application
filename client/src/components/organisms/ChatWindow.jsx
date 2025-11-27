@@ -152,6 +152,11 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             let messageToSend = newMessage;
             let nonce = null;
 
+            // TEMPORARY FIX: Disable E2EE encryption until key sync is fixed
+            // This allows users to communicate immediately
+            console.warn("⚠️ E2EE DISABLED TEMPORARILY - Sending message as plaintext");
+
+            /* ORIGINAL E2EE CODE - DISABLED FOR NOW
             if (sharedKey) {
                 try {
                     const encrypted = encryptMessage(newMessage, sharedKey);
@@ -162,6 +167,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     // Fallback to plain text if encryption fails (or handle error)
                 }
             }
+            */
 
             onSendMessage(messageToSend, nonce, newMessage);
             setNewMessage('');
@@ -188,33 +194,27 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             }
 
             let displayMessage = msg;
-            if (msg.nonce && sharedKey && !msg.isPlaintext) {
+
+            // Check if this is a plaintext message (no encryption)
+            if (!msg.nonce && msg.content) {
+                // Plaintext message - display as-is
+                displayMessage = msg;
+            } else if (msg.nonce && sharedKey && !msg.isPlaintext) {
+                // Old encrypted message - try to decrypt
                 try {
                     const decryptedContent = decryptMessage(msg.content, msg.nonce, sharedKey);
                     displayMessage = { ...msg, content: decryptedContent };
-                    // console.log(`✅ Decrypted message ${msg.id}`);
                 } catch (err) {
-                    // Decryption failed with existing key -> Key mismatch or corruption
-                    console.error(`❌ Failed to decrypt message ${msg.id}:`, err.message);
-                    console.error(`   Possible causes: 
-                        1. Sender regenerated their keys (lost localStorage or logged in on new device)
-                        2. You regenerated your keys
-                        3. Message was encrypted with a different key pair`);
-                    displayMessage = { ...msg, content: '🔒 Encrypted message' };
+                    // Decryption failed - show as encrypted (old messages from before the fix)
+                    console.error(`❌ Cannot decrypt old message ${msg.id} - keys may have changed`);
+                    displayMessage = { ...msg, content: '🔒 Encrypted message (sent before fix)' };
                 }
             } else if (msg.nonce && !sharedKey && !msg.isPlaintext) {
-                // Encrypted but we don't have the key yet
-                console.warn(`⚠️  Cannot decrypt message ${msg.id}: No shared key available`);
-                displayMessage = { ...msg, content: '🔒 Loading secure message...' };
-            } else if (!msg.nonce && msg.content) {
-                // Legacy message (not encrypted) or system message
-                // Heuristic: If it looks like an encrypted string (long, no spaces), hide it
-                if (!msg.content.includes(' ') && msg.content.length > 20) {
-                    console.warn(`⚠️  Message ${msg.id} looks encrypted but has no nonce (legacy)`);
-                    displayMessage = { ...msg, content: '🔒 Encrypted message (Legacy)' };
-                } else {
-                    displayMessage = msg;
-                }
+                // Encrypted but we don't have the key
+                displayMessage = { ...msg, content: '🔒 Encrypted message (no key available)' };
+            } else if (msg.isPlaintext) {
+                // Optimistic plaintext message
+                displayMessage = msg;
             }
 
             result.push(
