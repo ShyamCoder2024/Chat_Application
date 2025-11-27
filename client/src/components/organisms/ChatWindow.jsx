@@ -34,35 +34,42 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             const mySecretKey = secretKey;
             if (!mySecretKey) return;
 
-            if (chat.publicKey) {
+            let keyDerived = false;
+
+            // 1. Try to fetch the latest public key from the server
+            // This ensures we always use the most up-to-date key, fixing issues where
+            // the other user re-installed the app or logged in on a new device.
+            if (chat.otherUserId) {
+                try {
+                    const res = await fetch(`${API_URL}/api/users/${chat.otherUserId}`);
+                    if (res.ok) {
+                        const userData = await res.json();
+                        if (userData.publicKey) {
+                            const key = deriveSharedKey(mySecretKey, userData.publicKey);
+                            if (key) {
+                                setSharedKey(key);
+                                keyDerived = true;
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching fresh public key:", err);
+                }
+            }
+
+            // 2. Fallback to the key passed in props if fetch failed or didn't yield a key
+            if (!keyDerived && chat.publicKey) {
                 try {
                     const key = deriveSharedKey(mySecretKey, chat.publicKey);
                     setSharedKey(key);
                 } catch (err) {
                     console.error("Error deriving shared key:", err);
                 }
-            } else if (chat.otherUserId) {
-                // Self-healing: Fetch user profile if public key is missing
-                try {
-                    // console.log("Missing public key, fetching user profile...", chat.otherUserId);
-                    const res = await fetch(`${API_URL}/api/users/${chat.otherUserId}`);
-                    if (res.ok) {
-                        const userData = await res.json();
-                        if (userData.publicKey) {
-                            const key = deriveSharedKey(mySecretKey, userData.publicKey);
-                            setSharedKey(key);
-                            // Optionally update chat object in parent or local state if needed for persistence
-                            // For now, just setting sharedKey is enough to fix display
-                        }
-                    }
-                } catch (err) {
-                    console.error("Error fetching missing public key:", err);
-                }
             }
         };
 
         initializeEncryption();
-    }, [chat, currentUserId]);
+    }, [chat, currentUserId, secretKey]);
 
     useEffect(() => {
         scrollToBottom();
