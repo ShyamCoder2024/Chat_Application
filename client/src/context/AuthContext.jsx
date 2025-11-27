@@ -107,9 +107,13 @@ export const AuthProvider = ({ children }) => {
                     localStorage.setItem(`chat_secret_key_${data.user._id}`, mySecretKey);
                     localStorage.setItem(`chat_public_key_${data.user._id}`, myPublicKey);
                 } else {
+                } else {
                     console.error("❌ CRITICAL: Failed to decrypt key from server! Password might be wrong or encryption is corrupted.");
-                    // STOP! Do not generate new keys. This would break all existing chats.
-                    throw new Error("Failed to decrypt your encryption keys. Please check your password or contact support. Do NOT generate new keys to avoid losing message history.");
+                    // Allow login but with NO secret key.
+                    // This allows the user to go to Profile -> Reset Keys.
+                    console.warn("⚠️ Logging in without encryption keys. User must reset keys.");
+                    mySecretKey = null;
+                    // Do NOT throw error, just proceed.
                 }
             } else if (!mySecretKey || !myPublicKey) {
                 console.log("🔐 Case 2: No keys available anywhere, generating NEW key pair");
