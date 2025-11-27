@@ -167,8 +167,8 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     const decryptedContent = decryptMessage(msg.content, msg.nonce, sharedKey);
                     displayMessage = { ...msg, content: decryptedContent };
                 } catch (err) {
-                    // console.error("Error decrypting message:", err);
-                    displayMessage = { ...msg, content: '🔒 Encrypted message (Waiting for key...)' };
+                    // Decryption failed with existing key -> Key mismatch or corruption
+                    displayMessage = { ...msg, content: '🔒 Encrypted message' };
                 }
             } else if (msg.nonce && !sharedKey && !msg.isPlaintext) {
                 // Encrypted but we don't have the key yet

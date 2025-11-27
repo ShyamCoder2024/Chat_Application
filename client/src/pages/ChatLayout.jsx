@@ -166,19 +166,36 @@ const ChatLayout = () => {
             const chatExists = currentChats.some(c => c.id === message.chatId);
 
             if (activeChat && message.chatId === activeChat.id) {
+                // Try to decrypt for better deduplication
+                let decryptedContent = message.content;
+                if (message.nonce) {
+                    const mySecretKey = localStorage.getItem('chat_secret_key');
+                    if (mySecretKey && activeChat.publicKey) {
+                        try {
+                            const sharedKey = deriveSharedKey(mySecretKey, activeChat.publicKey);
+                            if (sharedKey) {
+                                decryptedContent = decryptMessage(message.content, message.nonce, sharedKey);
+                            }
+                        } catch (err) {
+                            // console.log("Deduplication decryption failed");
+                        }
+                    }
+                }
+
                 setMessages(prev => {
                     // Check if we have an optimistic message with the same NONCE or content
                     const isOptimistic = prev.some(msg =>
                         msg.isOptimistic &&
                         (
                             (message.nonce && msg.nonce === message.nonce) || // Match by Nonce (Best)
-                            (msg.content === message.content) // Fallback to content (for legacy/unencrypted)
+                            (msg.content === message.content) || // Match by Ciphertext (Rare)
+                            (msg.content === decryptedContent) // Match by Decrypted Content (Robust Fallback)
                         )
                     );
 
                     if (isOptimistic) {
                         return prev.map(msg =>
-                            (msg.isOptimistic && ((message.nonce && msg.nonce === message.nonce) || msg.content === message.content))
+                            (msg.isOptimistic && ((message.nonce && msg.nonce === message.nonce) || msg.content === message.content || msg.content === decryptedContent))
                                 ? {
                                     id: message._id,
                                     content: msg.content, // Keep the plaintext we already have!
@@ -186,16 +203,16 @@ const ChatLayout = () => {
                                     senderId: message.senderId,
                                     time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                     status: msg.status,
-                                    isPlaintext: true // Keep it marked as plaintext so we don't try to decrypt it again
+                                    isPlaintext: true // Keep it marked as plaintext
                                 }
                                 : msg
                         );
                     }
 
-                    // If not optimistic, it's a new message from someone else (or a sync)
+                    // If not optimistic, it's a new message
                     return [...prev, {
                         id: message._id,
-                        content: message.content,
+                        content: message.content, // Keep as is (encrypted)
                         nonce: message.nonce,
                         senderId: message.senderId,
                         time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
