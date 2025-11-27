@@ -107,7 +107,6 @@ export const AuthProvider = ({ children }) => {
                     localStorage.setItem(`chat_secret_key_${data.user._id}`, mySecretKey);
                     localStorage.setItem(`chat_public_key_${data.user._id}`, myPublicKey);
                 } else {
-                } else {
                     console.error("❌ CRITICAL: Failed to decrypt key from server! Password might be wrong or encryption is corrupted.");
                     // Allow login but with NO secret key.
                     // This allows the user to go to Profile -> Reset Keys.

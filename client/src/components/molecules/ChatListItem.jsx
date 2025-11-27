@@ -27,7 +27,10 @@ const ChatListItem = ({
                 </div>
 
                 <div className="chat-footer">
-                    <p className="chat-preview">{message}</p>
+                    <p className="chat-preview">
+                        {message && message.startsWith('🔒') && <span style={{ marginRight: '4px' }}>🔒</span>}
+                        {message && message.startsWith('🔒') ? message.replace('🔒', '').trim() : message}
+                    </p>
                     {unreadCount > 0 && <Badge count={unreadCount} />}
                 </div>
             </div>
