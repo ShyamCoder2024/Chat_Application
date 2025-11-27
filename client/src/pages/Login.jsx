@@ -20,6 +20,29 @@ const Login = () => {
     const { login, register } = useAuth();
     const navigate = useNavigate();
 
+    // Handle mobile viewport height (keyboard overlap)
+    React.useEffect(() => {
+        if (!window.visualViewport) return;
+
+        const handleResize = () => {
+            const viewportHeight = window.visualViewport.height;
+            document.documentElement.style.setProperty('--viewport-height', `${viewportHeight}px`);
+
+            // If keyboard is open (viewport is significantly smaller), scroll active element into view
+            if (window.innerHeight - viewportHeight > 150) {
+                const activeElement = document.activeElement;
+                if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+                    setTimeout(() => activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                }
+            }
+        };
+
+        window.visualViewport.addEventListener('resize', handleResize);
+        handleResize(); // Initial set
+
+        return () => window.visualViewport.removeEventListener('resize', handleResize);
+    }, []);
+
     const handleNext = (e) => {
         e.preventDefault();
         setError('');
@@ -89,7 +112,7 @@ const Login = () => {
                                     placeholder="Phone Number"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-
+                                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                                     autoFocus
                                 />
                                 <Input
@@ -97,7 +120,7 @@ const Login = () => {
                                     placeholder="Password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-
+                                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                                 />
                                 <Button type="submit" variant="primary" className="full-width">
                                     Login

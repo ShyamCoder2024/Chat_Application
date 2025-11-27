@@ -78,11 +78,11 @@ const ChatLayout = () => {
                         // Simple AES Decryption (Keys not needed for this mode)
                         lastMessageContent = decryptMessage(chat.lastMessage.content, chat.lastMessage.nonce, null);
                     } catch (err) {
-                        lastMessageContent = '🔒 Encrypted message';
+                        lastMessageContent = 'Message'; // Cleaner fallback
                     }
-                } else if (chat.lastMessage?.content && !chat.lastMessage.content.includes(' ') && chat.lastMessage.content.length > 20) {
-                    // Heuristic: If no nonce, but content looks like a long continuous string (likely base64), assume it's legacy encrypted
-                    lastMessageContent = '🔒 Encrypted message';
+                } else if (chat.lastMessage?.content && chat.lastMessage.content.startsWith('U2FsdGVkX1')) {
+                    // Heuristic: Check for standard CryptoJS prefix (Salted__)
+                    lastMessageContent = 'Message';
                 }
 
                 return {
@@ -260,7 +260,7 @@ const ChatLayout = () => {
                                 try {
                                     previewContent = decryptMessage(message.content, message.nonce, null);
                                 } catch (err) {
-                                    previewContent = '🔒 Encrypted message';
+                                    previewContent = 'Message'; // Cleaner fallback
                                 }
                             }
 
@@ -294,7 +294,7 @@ const ChatLayout = () => {
                         try {
                             lastMessageContent = decryptMessage(message.content, message.nonce, null);
                         } catch (err) {
-                            lastMessageContent = '🔒 Encrypted message';
+                            lastMessageContent = 'Message'; // Cleaner fallback
                         }
                     }
 
