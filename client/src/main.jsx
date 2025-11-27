@@ -7,6 +7,7 @@ import { AuthProvider } from './context/AuthContext.jsx'
 import { SocketProvider } from './context/SocketContext.jsx'
 import { SoundProvider } from './context/SoundContext.jsx'
 import './index.css'
+import './MobileOverrides.css'
 
 import ErrorBoundary from './components/atoms/ErrorBoundary.jsx'
 
