@@ -46,7 +46,10 @@ const ChatLayout = () => {
     }, [user, view, secretKey]); // Added secretKey dependency
 
     const fetchChats = async () => {
-        if (!user) return;
+        if (!user) {
+            setIsChatsLoading(false);
+            return;
+        }
         try {
             setError(null);
             // Add 5 second timeout
@@ -801,7 +804,25 @@ const ChatLayout = () => {
                     />
                 ) : (
                     <div className="empty-state animate-fade-in">
-                        <p>Select a chat to start messaging</p>
+                        <div className="empty-state-content">
+                            <MessageCircle size={48} className="empty-state-icon" />
+                            <h3>Welcome to MeetPune</h3>
+                            <p>Select a chat to start messaging or find a new friend.</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Connection Status Banners */}
+            <div className="status-banners">
+                {!isSocketConnected && (
+                    <div className="status-banner warning">
+                        <span>Connecting to server...</span>
+                    </div>
+                )}
+                {isChatsLoading && !isSocketConnected && (
+                    <div className="status-banner info">
+                        <span>Server might be waking up (this can take up to 60s)...</span>
                     </div>
                 )}
             </div>
