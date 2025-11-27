@@ -16,7 +16,10 @@ export const SocketProvider = ({ children }) => {
     useEffect(() => {
         if (user) {
             const newSocket = io(API_URL, {
-                parser: msgpackParser
+                parser: msgpackParser,
+                transports: ['polling', 'websocket'], // Force polling first for better compatibility
+                reconnectionAttempts: 5,
+                timeout: 10000,
             });
             setSocket(newSocket);
 

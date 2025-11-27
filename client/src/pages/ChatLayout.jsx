@@ -813,6 +813,20 @@ const ChatLayout = () => {
                 )}
             </div>
 
+            {/* Configuration Error Modal */}
+            {API_URL.includes('localhost') && window.location.hostname !== 'localhost' && (
+                <div className="modal-overlay" style={{ zIndex: 9999 }}>
+                    <div className="modal-content" style={{ border: '2px solid red' }}>
+                        <h3 style={{ color: 'red' }}>Configuration Error</h3>
+                        <p>The app is trying to connect to <b>localhost</b>, but you are on a deployed site.</p>
+                        <p>You must set the <b>VITE_API_URL</b> environment variable in Vercel to your Render Backend URL.</p>
+                        <div style={{ marginTop: '16px', fontSize: '12px', background: '#f5f5f5', padding: '8px' }}>
+                            Current API URL: {API_URL}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Connection Status Banners */}
             <div className="status-banners">
                 {!isSocketConnected && (
