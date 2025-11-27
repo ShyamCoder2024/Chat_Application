@@ -3,6 +3,10 @@
     background-color: var(--color-cream);
     display: flex;
     flex-direction: column;
+    overflow-y: auto;
+    /* Enable scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scrolling on iOS */
 }
 
 .profile-content {
@@ -191,8 +195,8 @@ input:checked+.slider:before {
 @media (max-width: 768px) {
     .profile-content {
         padding: var(--spacing-xl) var(--spacing-md);
-        padding-bottom: 300px;
-        /* Space for keyboard */
+        padding-bottom: 120px;
+        /* Ensure enough space for bottom nav/safe area */
     }
 
     .profile-header {
@@ -200,8 +204,7 @@ input:checked+.slider:before {
     }
 
     .settings-section {
-        margin-bottom: var(--spacing-2xl);
-        /* Add space at bottom to prevent overlap */
+        margin-bottom: var(--spacing-xl);
     }
 }
 
