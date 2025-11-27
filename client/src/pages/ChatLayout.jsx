@@ -114,6 +114,7 @@ const ChatLayout = () => {
                                 ? {
                                     id: message._id,
                                     content: message.content,
+                                    nonce: message.nonce || msg.nonce, // Preserve nonce!
                                     senderId: message.senderId,
                                     time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                     status: msg.status
