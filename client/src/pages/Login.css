@@ -206,28 +206,35 @@
 @media (max-width: 900px) {
     .login-page {
         flex-direction: column;
-        height: auto;
-        min-height: 100vh;
+        height: 100dvh;
+        /* Use dynamic viewport height */
         min-height: 100dvh;
-        /* Dynamic viewport height for mobile browsers */
         overflow-y: auto;
+        /* Allow scrolling if content overflows */
+        overflow-x: hidden;
     }
 
     .login-left {
         padding: var(--spacing-lg);
         order: 2;
-        min-height: auto;
+        flex: 1;
+        /* Take remaining space */
+        display: flex;
+        align-items: flex-start;
+        /* Align to top of this section */
+        padding-top: var(--spacing-xl);
     }
 
     .login-right {
         flex: none;
-        height: 180px;
-        min-height: 180px;
+        height: 160px;
+        /* Slightly smaller header */
+        min-height: 160px;
         order: 1;
     }
 
     .avatar-showcase {
-        opacity: 0.5;
+        opacity: 0.6;
     }
 
     .showcase-content {
@@ -236,13 +243,23 @@
 
     .login-card {
         padding: 0;
-        margin-bottom: var(--spacing-2xl);
+        margin-bottom: 0;
+        width: 100%;
     }
 
-    /* Ensure inputs are visible when keyboard opens */
+    .app-name {
+        font-size: 32px;
+        /* Smaller title on mobile */
+    }
+
+    .login-subtitle {
+        font-size: 20px;
+        margin-bottom: var(--spacing-lg);
+    }
+
     .login-form {
-        margin-bottom: var(--spacing-3xl);
-        padding-bottom: 300px;
-        /* Space for keyboard */
+        gap: var(--spacing-md);
+        /* Remove the huge padding-bottom that was causing scroll issues */
+        padding-bottom: var(--spacing-2xl);
     }
 }

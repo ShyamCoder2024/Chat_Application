@@ -15,6 +15,8 @@
     grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
     gap: var(--spacing-md);
     justify-items: center;
+    justify-content: center;
+    /* Center the grid itself */
     max-height: 200px;
     overflow-y: auto;
     padding: var(--spacing-sm);

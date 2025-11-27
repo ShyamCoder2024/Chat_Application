@@ -128,6 +128,7 @@ const Login = () => {
                                             value={phone}
                                             onChange={(e) => setPhone(e.target.value)}
                                             onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                                            onBlur={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                                         />
                                         <Input
                                             type="password"
@@ -135,6 +136,7 @@ const Login = () => {
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                                            onBlur={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                                         />
                                         <Button type="button" variant="primary" className="full-width" onClick={handleNext}>
                                             Next
