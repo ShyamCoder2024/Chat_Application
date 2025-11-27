@@ -1,5 +1,7 @@
 .app-layout {
     display: flex;
+    flex-direction: row;
+    /* Explicitly row for desktop */
     height: 100vh;
     /* Fallback */
     height: 100dvh;
@@ -10,68 +12,29 @@
 
 .sidebar {
     width: 380px;
+    flex: 0 0 380px;
+    /* Prevent shrinking */
     background-color: var(--color-cream);
     border-right: 1px solid rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
-    flex-shrink: 0;
     transition: transform 0.3s ease;
     will-change: transform;
-}
-
-.sidebar-header {
-    padding: var(--spacing-xl);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
-
-.app-title {
-    font-size: 24px;
-    color: var(--text-primary);
+    position: relative;
+    /* Reset position for desktop */
+    z-index: 1;
 }
 
 .main-content {
     flex: 1;
+    min-width: 0;
+    /* Prevent flex child overflow */
     background-color: var(--color-white);
     position: relative;
     display: flex;
     flex-direction: column;
     will-change: transform;
-}
-
-:root[data-theme='dark'] .main-content {
-    background-color: #121212 !important;
-}
-
-.empty-state {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-tertiary);
-    background-image: radial-gradient(var(--color-sage) 1px, transparent 1px);
-    background-size: 20px 20px;
-    opacity: 0.5;
-}
-
-.bottom-nav {
-    display: none;
-    /* Hidden on desktop */
-    padding: var(--spacing-md);
-    background-color: var(--color-white);
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
-    justify-content: space-around;
-}
-
-.active-nav {
-    color: var(--color-sage);
+    z-index: 1;
 }
 
 /* Mobile Responsiveness */
@@ -84,6 +47,8 @@
         width: 100%;
         height: 100%;
         position: absolute;
+        top: 0;
+        left: 0;
         z-index: 10;
         border-right: none;
     }
@@ -92,6 +57,8 @@
         width: 100%;
         height: 100%;
         position: absolute;
+        top: 0;
+        left: 0;
         z-index: 20;
     }
 

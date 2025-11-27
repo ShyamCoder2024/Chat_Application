@@ -15,7 +15,7 @@ import { deriveSharedKey, decryptMessage } from '../utils/crypto';
 import './ChatLayout.css';
 
 const ChatLayout = () => {
-    const { user, logout, updateProfile, secretKey, resetKeys } = useAuth();
+    const { user, logout, updateProfile, secretKey } = useAuth();
     const { socket, onlineUsers } = useSocket();
     const { playSound } = useSound();
 
@@ -640,23 +640,7 @@ const ChatLayout = () => {
 
     return (
         <div className="chat-layout">
-            {!secretKey && (
-                <div style={{
-                    backgroundColor: '#e74c3c',
-                    color: 'white',
-                    padding: '10px',
-                    textAlign: 'center',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 9999
-                }}>
-                    ⚠️ Encryption keys missing! Please go to Profile &gt; Reset Encryption Keys to fix messaging.
-                </div>
-            )}
+
             <div className={`sidebar ${view !== 'chats' ? 'hidden-mobile' : ''}`}>
                 <div className="sidebar-header">
                     <h1 className="app-title">Messages</h1>
@@ -706,7 +690,6 @@ const ChatLayout = () => {
                             onLogout={logout}
                             onSave={updateProfile}
                             onBack={() => window.history.back()}
-                            onResetKeys={resetKeys}
                         />
                     </div>
                 ) : view === 'user-profile' ? (
