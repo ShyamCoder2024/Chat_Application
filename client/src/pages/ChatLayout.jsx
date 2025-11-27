@@ -184,8 +184,12 @@ const ChatLayout = () => {
 
                 setMessages(prev => {
                     // Check if we have an optimistic message with the same NONCE or content
+                    // CRITICAL FIX: Only match if the sender is ME (user._id)
+                    // Incoming messages from others should NEVER overwrite my optimistic messages
                     const isOptimistic = prev.some(msg =>
                         msg.isOptimistic &&
+                        msg.senderId === user._id && // Ensure optimistic message is mine
+                        (message.senderId === user._id) && // Ensure incoming message is also marked as mine (echo)
                         (
                             (message.nonce && msg.nonce === message.nonce) || // Match by Nonce (Best)
                             (msg.content === message.content) || // Match by Ciphertext (Rare)
@@ -195,7 +199,7 @@ const ChatLayout = () => {
 
                     if (isOptimistic) {
                         return prev.map(msg =>
-                            (msg.isOptimistic && ((message.nonce && msg.nonce === message.nonce) || msg.content === message.content || msg.content === decryptedContent))
+                            (msg.isOptimistic && msg.senderId === user._id && (message.senderId === user._id) && ((message.nonce && msg.nonce === message.nonce) || msg.content === message.content || msg.content === decryptedContent))
                                 ? {
                                     id: message._id,
                                     content: msg.content, // Keep the plaintext we already have!
@@ -222,37 +226,50 @@ const ChatLayout = () => {
 
                 // Mark as read immediately if chat is open
                 markChatAsRead(activeChat.id);
-            } else if (chatExists) {
-                // Increment unread count if chat is not active
-                setChats(prevChats => prevChats.map(chat => {
-                    if (chat.id === message.chatId) {
-                        let previewContent = message.content;
-                        // Decrypt preview if needed
-                        if (message.nonce) {
-                            const mySecretKey = secretKey;
-                            if (mySecretKey && chat.publicKey) {
-                                try {
-                                    const sharedKey = deriveSharedKey(mySecretKey, chat.publicKey);
-                                    if (sharedKey) {
-                                        previewContent = decryptMessage(message.content, message.nonce, sharedKey);
+            }
+
+            // Update Chat List (Sorting & Preview)
+            if (chatExists) {
+                setChats(prevChats => {
+                    const updatedChats = prevChats.map(chat => {
+                        if (chat.id === message.chatId) {
+                            let previewContent = message.content;
+                            // Decrypt preview if needed
+                            if (message.nonce) {
+                                const mySecretKey = secretKey;
+                                // Use the chat's public key which we should have
+                                if (mySecretKey && chat.publicKey) {
+                                    try {
+                                        const sharedKey = deriveSharedKey(mySecretKey, chat.publicKey);
+                                        if (sharedKey) {
+                                            previewContent = decryptMessage(message.content, message.nonce, sharedKey);
+                                        }
+                                    } catch (err) {
+                                        previewContent = '🔒 Encrypted message';
                                     }
-                                } catch (err) {
+                                } else {
                                     previewContent = '🔒 Encrypted message';
                                 }
-                            } else {
-                                previewContent = '🔒 Encrypted message';
                             }
-                        }
 
-                        return {
-                            ...chat,
-                            lastMessage: previewContent,
-                            time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            unreadCount: (chat.unreadCount || 0) + 1
-                        };
+                            return {
+                                ...chat,
+                                lastMessage: previewContent,
+                                time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                unreadCount: (activeChat?.id === message.chatId) ? 0 : (chat.unreadCount || 0) + 1
+                            };
+                        }
+                        return chat;
+                    });
+
+                    // Sort: Move updated chat to top
+                    const activeChatIndex = updatedChats.findIndex(c => c.id === message.chatId);
+                    if (activeChatIndex > -1) {
+                        const [movedChat] = updatedChats.splice(activeChatIndex, 1);
+                        updatedChats.unshift(movedChat);
                     }
-                    return chat;
-                }));
+                    return updatedChats;
+                });
             } else {
                 // New Chat! Fetch details and add to list
                 try {
@@ -260,6 +277,23 @@ const ChatLayout = () => {
                     if (res.ok) {
                         const newChatData = await res.json();
                         const otherUser = newChatData.userIds.find(u => u._id !== user._id);
+
+                        let lastMessageContent = message.content;
+                        // Decrypt initial message for new chat
+                        if (message.nonce) {
+                            const mySecretKey = secretKey;
+                            if (mySecretKey && otherUser?.publicKey) {
+                                try {
+                                    const sharedKey = deriveSharedKey(mySecretKey, otherUser.publicKey);
+                                    if (sharedKey) {
+                                        lastMessageContent = decryptMessage(message.content, message.nonce, sharedKey);
+                                    }
+                                } catch (err) {
+                                    lastMessageContent = '🔒 Encrypted message';
+                                }
+                            }
+                        }
+
                         const newChat = {
                             id: newChatData._id,
                             name: (otherUser?.firstName && otherUser?.lastName)
@@ -269,7 +303,7 @@ const ChatLayout = () => {
                             otherUserId: otherUser?._id,
                             publicKey: otherUser?.publicKey,
                             lastSeen: otherUser?.lastSeen,
-                            lastMessage: message.content,
+                            lastMessage: lastMessageContent,
                             time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                             unreadCount: 1
                         };
@@ -285,7 +319,7 @@ const ChatLayout = () => {
         });
 
         return () => socket.off('receive_message');
-    }, [socket, activeChat, playSound]); // Removed chats from dependency to avoid re-subscription loop
+    }, [socket, activeChat, playSound, secretKey, user._id]); // Added secretKey and user._id
 
     const markChatAsRead = async (chatId) => {
         try {
@@ -404,14 +438,24 @@ const ChatLayout = () => {
 
         setMessages(prev => [...prev, optimisticMessage]);
 
-        // Update chat list preview immediately
-        setChats(prev => prev.map(c =>
-            c.id === activeChat.id ? {
-                ...c,
-                lastMessage: displayContent, // Use plaintext for preview!
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            } : c
-        ));
+        // Update chat list preview immediately AND move to top
+        setChats(prev => {
+            const updatedChats = prev.map(c =>
+                c.id === activeChat.id ? {
+                    ...c,
+                    lastMessage: displayContent, // Use plaintext for preview!
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                } : c
+            );
+
+            // Sort: Move active chat to top
+            const activeChatIndex = updatedChats.findIndex(c => c.id === activeChat.id);
+            if (activeChatIndex > -1) {
+                const [movedChat] = updatedChats.splice(activeChatIndex, 1);
+                updatedChats.unshift(movedChat);
+            }
+            return updatedChats;
+        });
 
         socket.emit('send_message', {
             chatId: activeChat.id,

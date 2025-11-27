@@ -25,6 +25,38 @@
     z-index: 1;
 }
 
+.sidebar-header {
+    padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    /* border-bottom: 1px solid rgba(0, 0, 0, 0.05); */
+}
+
+.app-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.bottom-nav {
+    display: none;
+    /* Hidden on desktop */
+    padding: var(--spacing-md);
+    background-color: var(--color-white);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    justify-content: space-around;
+    align-items: center;
+}
+
 /* Tablet Optimization */
 @media (max-width: 1024px) {
     .sidebar {
