@@ -175,10 +175,12 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 displayMessage = { ...msg, content: '🔒 Loading secure message...' };
             } else if (!msg.nonce && msg.content) {
                 // Legacy message (not encrypted) or system message
-                // If it looks like base64, it might be encrypted but missing nonce (edge case)
-                // For now, assume it's plain text if no nonce, but this might be risky if we encrypted without nonce before.
-                // Based on history, we always added nonce with encryption.
-                displayMessage = msg;
+                // Heuristic: If it looks like an encrypted string (long, no spaces), hide it
+                if (!msg.content.includes(' ') && msg.content.length > 20) {
+                    displayMessage = { ...msg, content: '🔒 Encrypted message (Legacy)' };
+                } else {
+                    displayMessage = msg;
+                }
             }
 
             result.push(

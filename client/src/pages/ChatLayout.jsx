@@ -81,6 +81,9 @@ const ChatLayout = () => {
                         // console.error("Error decrypting preview:", err);
                         lastMessageContent = '🔒 Encrypted message';
                     }
+                } else if (!chat.lastMessage?.nonce && chat.lastMessage?.content && !chat.lastMessage.content.includes(' ') && chat.lastMessage.content.length > 20) {
+                    // Heuristic: If no nonce, but content looks like a long continuous string (likely base64), assume it's legacy encrypted
+                    lastMessageContent = '🔒 Encrypted message';
                 }
 
                 return {
