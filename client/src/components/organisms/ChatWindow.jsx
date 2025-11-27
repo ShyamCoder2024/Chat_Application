@@ -213,7 +213,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
 
             <div className="messages-area">
                 <div className="retention-notice">
-                    <p>Messages are automatically deleted after 24 hours.</p>
+                    <p>Messages are automatically deleted after 24 hours. Your messages are end-to-end encrypted 🔒.</p>
                 </div>
                 {renderMessages()}
                 {isTyping && <TypingIndicator />}
