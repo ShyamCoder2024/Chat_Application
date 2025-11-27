@@ -16,9 +16,32 @@ import './ChatLayout.css';
 
 const ChatLayout = () => {
     const { user, logout, updateProfile } = useAuth();
-    // ... (existing hooks)
+    const { socket, onlineUsers } = useSocket();
+    const { playSound } = useSound();
 
-    // ...
+    const [chats, setChats] = useState([]);
+    const [activeChat, setActiveChat] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [view, setView] = useState('chats'); // chats | chat | profile | user-profile
+    const [showNewChatModal, setShowNewChatModal] = useState(false);
+    const [newChatPhone, setNewChatPhone] = useState('');
+    const [searchResult, setSearchResult] = useState(null); // State for user search result
+    const [targetUserProfile, setTargetUserProfile] = useState(null);
+
+    // Ref to track chats for socket listener without re-subscribing
+    const chatsRef = useRef(chats);
+    useEffect(() => {
+        chatsRef.current = chats;
+    }, [chats]);
+
+    const [error, setError] = useState(null);
+
+    // Fetch Chats
+    useEffect(() => {
+        if (view === 'chats') {
+            fetchChats();
+        }
+    }, [user, view]);
 
     const fetchChats = async () => {
         if (!user) return;
