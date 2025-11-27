@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import Header from '../molecules/Header';
 import MessageBubble from '../molecules/MessageBubble';
@@ -18,6 +19,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const messagesEndRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const { socket } = useSocket();
+    const { secretKey } = useAuth();
 
     const [sharedKey, setSharedKey] = useState(null);
 
@@ -29,7 +31,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         const initializeEncryption = async () => {
             if (!chat) return;
 
-            const mySecretKey = localStorage.getItem('chat_secret_key');
+            const mySecretKey = secretKey;
             if (!mySecretKey) return;
 
             if (chat.publicKey) {

@@ -15,7 +15,7 @@ import { deriveSharedKey, decryptMessage } from '../utils/crypto';
 import './ChatLayout.css';
 
 const ChatLayout = () => {
-    const { user, logout, updateProfile } = useAuth();
+    const { user, logout, updateProfile, secretKey } = useAuth();
     const { socket, onlineUsers } = useSocket();
     const { playSound } = useSound();
 
@@ -65,7 +65,7 @@ const ChatLayout = () => {
                 throw new Error(`Failed to load chats: ${res.status}`);
             }
             const data = await res.json();
-            const mySecretKey = localStorage.getItem('chat_secret_key');
+            const mySecretKey = secretKey;
 
             const formattedChats = data.map(chat => {
                 const otherUser = chat.userIds.find(u => u._id !== user._id);
@@ -169,7 +169,7 @@ const ChatLayout = () => {
                 // Try to decrypt for better deduplication
                 let decryptedContent = message.content;
                 if (message.nonce) {
-                    const mySecretKey = localStorage.getItem('chat_secret_key');
+                    const mySecretKey = secretKey;
                     if (mySecretKey && activeChat.publicKey) {
                         try {
                             const sharedKey = deriveSharedKey(mySecretKey, activeChat.publicKey);
@@ -229,7 +229,7 @@ const ChatLayout = () => {
                         let previewContent = message.content;
                         // Decrypt preview if needed
                         if (message.nonce) {
-                            const mySecretKey = localStorage.getItem('chat_secret_key');
+                            const mySecretKey = secretKey;
                             if (mySecretKey && chat.publicKey) {
                                 try {
                                     const sharedKey = deriveSharedKey(mySecretKey, chat.publicKey);
