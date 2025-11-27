@@ -9,6 +9,18 @@
     position: relative;
 }
 
+/* Mobile: Use fixed positioning to track visual viewport */
+@media (max-width: 768px) {
+    .chat-layout {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100%;
+    }
+}
+
 .sidebar {
     width: 380px;
     flex: 0 0 380px;
@@ -105,14 +117,16 @@
         position: absolute;
         top: 0;
         left: 0;
+        right: 0;
+        bottom: 0;
         z-index: 20;
         transform: translateX(100%);
-        /* Start off-screen right */
         transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
         background-color: var(--color-white);
-        /* Ensure opaque background */
         backface-visibility: hidden;
         perspective: 1000px;
+        display: flex;
+        flex-direction: column;
     }
 
     /* View States */
