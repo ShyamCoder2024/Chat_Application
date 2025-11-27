@@ -138,32 +138,7 @@ const ProfileSection = ({ user, onSave, onLogout, onBack, onResetKeys }) => {
                             )}
                         </div>
 
-                        <div className="settings-section danger-zone">
-                            <h3 className="settings-title" style={{ color: '#e74c3c' }}>Danger Zone</h3>
-                            <p style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
-                                If you cannot read messages, your encryption keys might be out of sync. Resetting them will fix new messages but make old messages unreadable.
-                            </p>
-                            <Button
-                                variant="secondary"
-                                className="full-width"
-                                style={{ color: '#e74c3c', borderColor: '#e74c3c' }}
-                                onClick={async () => {
-                                    if (window.confirm("⚠️ WARNING: Resetting keys will make ALL previous messages permanently unreadable. Are you sure?")) {
-                                        const password = window.prompt("Please enter your password to confirm:");
-                                        if (password) {
-                                            try {
-                                                await onResetKeys(password);
-                                                alert("Keys reset successfully! You can now chat securely.");
-                                            } catch (err) {
-                                                alert("Failed to reset keys. Check your password.");
-                                            }
-                                        }
-                                    }
-                                }}
-                            >
-                                Reset Encryption Keys
-                            </Button>
-                        </div>
+
                     </>
                 ) : (
                     <div className="profile-form">

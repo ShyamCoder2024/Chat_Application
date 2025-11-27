@@ -1,65 +1,37 @@
-import nacl from 'tweetnacl';
+import CryptoJS from 'crypto-js';
 
-// Polyfill for Base64 encoding/decoding of Uint8Array
-const encodeBase64 = (arr) => {
-    const bin = [];
-    arr.forEach((byte) => bin.push(String.fromCharCode(byte)));
-    return btoa(bin.join(''));
-};
+// SIMPLE ENCRYPTION IMPLEMENTATION
+// As requested, we are moving to a simpler, more robust encryption method
+// to avoid the complexity and errors of the previous E2EE implementation.
 
-const decodeBase64 = (str) => {
-    const binary = atob(str);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes;
-};
+const APP_SECRET = "meetpune_simple_secret_key_2024"; // In production, use env var
 
-// Generate a new key pair
 export const generateKeyPair = () => {
-    const keyPair = nacl.box.keyPair();
-    return {
-        publicKey: encodeBase64(keyPair.publicKey),
-        secretKey: encodeBase64(keyPair.secretKey)
-    };
+    // Dummy function to keep AuthContext from breaking
+    return { publicKey: 'simple_mode', secretKey: 'simple_mode' };
 };
 
-// Derive shared key (sender's secret key + receiver's public key)
 export const deriveSharedKey = (mySecretKey, theirPublicKey) => {
-    try {
-        const secretKeyUint8 = decodeBase64(mySecretKey);
-        const publicKeyUint8 = decodeBase64(theirPublicKey);
-        return nacl.box.before(publicKeyUint8, secretKeyUint8);
-    } catch (err) {
-        console.error("Error deriving shared key:", err);
-        return null;
-    }
+    // Dummy function - we don't need shared keys anymore
+    return "simple_shared_key";
 };
 
-// Encrypt a message
 export const encryptMessage = (message, sharedKey) => {
-    if (!sharedKey) throw new Error("No shared key provided");
-    const nonce = nacl.randomBytes(nacl.box.nonceLength);
-    const messageUint8 = new TextEncoder().encode(message);
-    const encrypted = nacl.box.after(messageUint8, nonce, sharedKey);
-
+    // Simple AES Encryption
+    const encrypted = CryptoJS.AES.encrypt(message, APP_SECRET).toString();
     return {
-        encrypted: encodeBase64(encrypted),
-        nonce: encodeBase64(nonce)
+        encrypted: encrypted,
+        nonce: 'simple_nonce' // Dummy nonce to satisfy API structure
     };
 };
 
-// Decrypt a message
 export const decryptMessage = (encryptedMessage, nonce, sharedKey) => {
-    if (!sharedKey) throw new Error("No shared key provided");
-    const encryptedUint8 = decodeBase64(encryptedMessage);
-    const nonceUint8 = decodeBase64(nonce);
-    const decrypted = nacl.box.open.after(encryptedUint8, nonceUint8, sharedKey);
-
-    if (!decrypted) {
-        throw new Error('Could not decrypt message');
+    try {
+        const bytes = CryptoJS.AES.decrypt(encryptedMessage, APP_SECRET);
+        const originalText = bytes.toString(CryptoJS.enc.Utf8);
+        if (!originalText) return encryptedMessage; // Return original if decryption fails (legacy support)
+        return originalText;
+    } catch (e) {
+        return encryptedMessage; // Fallback to showing raw text if it wasn't encrypted
     }
-
-    return new TextDecoder().decode(decrypted);
 };

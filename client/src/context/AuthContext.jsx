@@ -69,98 +69,11 @@ export const AuthProvider = ({ children }) => {
             const data = await res.json();
             if (data.error) throw new Error(data.error);
 
-            console.log("🔐 E2EE Login Debug:", {
-                userId: data.user._id,
-                hasEncryptedKeyOnServer: !!data.user.encryptedPrivateKey,
-                hasIvOnServer: !!data.user.iv,
-                hasPublicKeyOnServer: !!data.user.publicKey
-            });
+            console.log("✅ Login Successful (Simple Mode)");
 
-            let mySecretKey = localStorage.getItem(`chat_secret_key_${data.user._id}`);
-            let myPublicKey = localStorage.getItem(`chat_public_key_${data.user._id}`);
-
-            console.log("🔐 Local Storage Keys:", {
-                hasSecretKey: !!mySecretKey,
-                hasPublicKey: !!myPublicKey
-            });
-
-            // KEY SYNC LOGIC
-            if (data.user.encryptedPrivateKey && data.user.iv) {
-                console.log("🔐 Case 1: Server has encrypted key, attempting to decrypt...");
-                // Case 1: Server has the key. Decrypt and use it.
-                // This syncs the key across devices (Laptop <-> Mobile)
-                const decryptedKey = decryptSecretKey(data.user.encryptedPrivateKey, password, data.user.iv);
-
-                // Validate Key Integrity
-                const isValidKey = (key) => {
-                    try {
-                        return key && key.length > 10 && /^[A-Za-z0-9+/=]+$/.test(key);
-                    } catch (e) { return false; }
-                };
-
-                if (decryptedKey && isValidKey(decryptedKey)) {
-                    console.log("✅ Successfully decrypted key from server");
-                    mySecretKey = decryptedKey;
-                    myPublicKey = data.user.publicKey; // Trust server public key if we have the private key
-
-                    // Save to local storage
-                    localStorage.setItem(`chat_secret_key_${data.user._id}`, mySecretKey);
-                    localStorage.setItem(`chat_public_key_${data.user._id}`, myPublicKey);
-                } else {
-                    console.error("❌ CRITICAL: Failed to decrypt key from server! Password might be wrong or encryption is corrupted.");
-                    // Allow login but with NO secret key.
-                    // This allows the user to go to Profile -> Reset Keys.
-                    console.warn("⚠️ Logging in without encryption keys. User must reset keys.");
-                    mySecretKey = null;
-                    // Do NOT throw error, just proceed.
-                }
-            } else if (!mySecretKey || !myPublicKey) {
-                console.log("🔐 Case 2: No keys available anywhere, generating NEW key pair");
-                // Case 2: No key on server AND no key locally. Generate NEW keys.
-                // This happens ONLY for a brand new user or if keys were never set up.
-                const keys = generateKeyPair();
-                mySecretKey = keys.secretKey;
-                myPublicKey = keys.publicKey;
-
-                localStorage.setItem(`chat_secret_key_${data.user._id}`, mySecretKey);
-                localStorage.setItem(`chat_public_key_${data.user._id}`, myPublicKey);
-
-                // BACKUP NEW KEY TO SERVER
-                console.log("📤 Uploading new keys to server...");
-                const { encryptedKey, iv } = encryptSecretKey(mySecretKey, password);
-                await updateProfile({
-                    encryptedPrivateKey: encryptedKey,
-                    iv: iv,
-                    publicKey: myPublicKey
-                }, data.user._id); // Pass ID explicitly as user state might not be set yet
-                console.log("✅ Keys uploaded to server");
-            } else {
-                console.log("🔐 Case 3: Have local keys but server doesn't, uploading to server...");
-                // Case 3: We have a local key, but server has nothing (Legacy User or sync failed previously).
-                // BACKUP EXISTING KEY TO SERVER so other devices can use it.
-                const { encryptedKey, iv } = encryptSecretKey(mySecretKey, password);
-                await updateProfile({
-                    encryptedPrivateKey: encryptedKey,
-                    iv: iv,
-                    publicKey: myPublicKey
-                }, data.user._id);
-                console.log("✅ Local keys uploaded to server");
-            }
-
-            // Ensure server has the correct public key (redundant check but safe)
-            if (data.user.publicKey !== myPublicKey) {
-                console.log("🔐 Updating public key on server to match local...");
-                await updateProfile({ publicKey: myPublicKey }, data.user._id);
-                data.user.publicKey = myPublicKey;
-            }
-
-            console.log("✅ E2EE Login Complete:", {
-                hasSecretKey: !!mySecretKey,
-                hasPublicKey: !!myPublicKey,
-                publicKeyPreview: myPublicKey?.substring(0, 20) + '...'
-            });
-
-            setSecretKey(mySecretKey);
+            // In Simple Mode, we don't need per-user keys, but we set a dummy one
+            // so other components don't break.
+            setSecretKey("simple_mode_secret");
             setUser(data.user);
             localStorage.setItem('user', JSON.stringify(data.user));
             return data.user;
@@ -172,12 +85,6 @@ export const AuthProvider = ({ children }) => {
 
     const register = async (phone, password, firstName, lastName, profilePic) => {
         try {
-            // Generate keys for new user
-            const keys = generateKeyPair();
-
-            // Encrypt Secret Key for Server Backup
-            const { encryptedKey, iv } = encryptSecretKey(keys.secretKey, password);
-
             const res = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -187,19 +94,15 @@ export const AuthProvider = ({ children }) => {
                     firstName,
                     lastName,
                     profilePic,
-                    publicKey: keys.publicKey,
-                    encryptedPrivateKey: encryptedKey,
-                    iv: iv
+                    publicKey: "simple_mode_pub", // Dummy key
+                    encryptedPrivateKey: "simple_mode_priv", // Dummy key
+                    iv: "simple_mode_iv" // Dummy IV
                 })
             });
             const data = await res.json();
             if (data.error) throw new Error(data.error);
 
-            // Save keys locally
-            localStorage.setItem(`chat_secret_key_${data.user._id}`, keys.secretKey);
-            localStorage.setItem(`chat_public_key_${data.user._id}`, keys.publicKey);
-
-            setSecretKey(keys.secretKey);
+            setSecretKey("simple_mode_secret");
             setUser(data.user);
             localStorage.setItem('user', JSON.stringify(data.user));
             return data.user;
@@ -241,41 +144,9 @@ export const AuthProvider = ({ children }) => {
         // Do NOT remove keys, persist them for next login on this device
     };
 
-    const resetKeys = async (password) => {
-        if (!user) return;
-        try {
-            console.log("⚠️ RESETTING ENCRYPTION KEYS...");
-            const keys = generateKeyPair();
-
-            // Encrypt Secret Key for Server Backup
-            const { encryptedKey, iv } = encryptSecretKey(keys.secretKey, password);
-
-            await updateProfile({
-                publicKey: keys.publicKey,
-                encryptedPrivateKey: encryptedKey,
-                iv: iv
-            });
-
-            // Update Local Storage
-            localStorage.setItem(`chat_secret_key_${user._id}`, keys.secretKey);
-            localStorage.setItem(`chat_public_key_${user._id}`, keys.publicKey);
-
-            setSecretKey(keys.secretKey);
-
-            // Update User State
-            setUser(prev => ({
-                ...prev,
-                publicKey: keys.publicKey,
-                encryptedPrivateKey: encryptedKey,
-                iv: iv
-            }));
-
-            console.log("✅ Keys reset successfully");
-            return true;
-        } catch (err) {
-            console.error("Failed to reset keys:", err);
-            throw err;
-        }
+    const resetKeys = async () => {
+        console.log("Reset keys not needed in Simple Mode");
+        return true;
     };
 
     return (
