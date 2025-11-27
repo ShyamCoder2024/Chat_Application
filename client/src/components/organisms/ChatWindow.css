@@ -37,35 +37,20 @@
     flex-shrink: 0;
 }
 
-/* Mobile-specific: Fixed position for keyboard behavior */
+/* Mobile-specific: Simpler approach */
 @media (max-width: 768px) {
     .chat-window {
-        position: relative;
         height: 100%;
     }
 
     .messages-area {
-        padding-bottom: 70px;
-        /* Reduced to match actual input height */
+        padding-bottom: 16px;
         -webkit-overflow-scrolling: touch;
-        position: relative;
-        height: 100%;
     }
 
     .input-area {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 10px 12px;
-        padding-bottom: 10px;
-        /* NO safe-area, NO extra spacing */
+        padding: 10px 14px 10px 14px;
         margin: 0;
-        /* NO margin */
-        background: var(--color-white);
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
-        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
-        z-index: 100;
     }
 }
 

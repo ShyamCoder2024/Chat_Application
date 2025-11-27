@@ -126,8 +126,6 @@ body {
   line-height: 1.5;
   overflow: hidden;
   overscroll-behavior: none;
-  position: fixed;
-  width: 100%;
 }
 
 /* Animations */
