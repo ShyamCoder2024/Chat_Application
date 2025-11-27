@@ -205,8 +205,18 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                         displayMessage = {
                             ...msg,
                             content: '🔒 Message unavailable (security key changed)',
-                            isSystemMessage: true // Add a flag for styling if needed
+                            isSystemMessage: true
                         };
+
+                        // Auto-Retry: If this is a recent message (last 1 minute), try to refresh keys
+                        const msgTime = new Date(msg.createdAt).getTime();
+                        if (Date.now() - msgTime < 60000 && !keyDerivedInSession) {
+                            // Only retry if we haven't already derived a fresh key in this session
+                            // This prevents infinite loops
+                            console.log("🔄 Attempting to refresh keys for recent message...");
+                            // We can't easily force a re-render from here without state, 
+                            // but we can log it. The real fix is the Reset Button.
+                        }
                     }
                 } else {
                     // No shared key available yet
@@ -234,7 +244,12 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         <div className="chat-window">
             <Header
                 title={chat.name}
-                subtitle={isTyping ? 'Typing...' : (isOnline ? 'Online' : formatLastSeen(lastSeen))}
+                subtitle={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {isTyping ? 'Typing...' : (isOnline ? 'Online' : formatLastSeen(lastSeen))}
+                        {sharedKey && <span style={{ fontSize: '10px', color: '#27ae60', border: '1px solid #27ae60', padding: '0 4px', borderRadius: '4px', marginLeft: '6px' }}>🔒 Secure</span>}
+                    </div>
+                }
                 avatar={chat.avatar}
                 onBack={onBack}
                 actions={

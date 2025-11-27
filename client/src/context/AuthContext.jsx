@@ -238,8 +238,45 @@ export const AuthProvider = ({ children }) => {
         // Do NOT remove keys, persist them for next login on this device
     };
 
+    const resetKeys = async (password) => {
+        if (!user) return;
+        try {
+            console.log("⚠️ RESETTING ENCRYPTION KEYS...");
+            const keys = generateKeyPair();
+
+            // Encrypt Secret Key for Server Backup
+            const { encryptedKey, iv } = encryptSecretKey(keys.secretKey, password);
+
+            await updateProfile({
+                publicKey: keys.publicKey,
+                encryptedPrivateKey: encryptedKey,
+                iv: iv
+            });
+
+            // Update Local Storage
+            localStorage.setItem(`chat_secret_key_${user._id}`, keys.secretKey);
+            localStorage.setItem(`chat_public_key_${user._id}`, keys.publicKey);
+
+            setSecretKey(keys.secretKey);
+
+            // Update User State
+            setUser(prev => ({
+                ...prev,
+                publicKey: keys.publicKey,
+                encryptedPrivateKey: encryptedKey,
+                iv: iv
+            }));
+
+            console.log("✅ Keys reset successfully");
+            return true;
+        } catch (err) {
+            console.error("Failed to reset keys:", err);
+            throw err;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, secretKey, login, register, logout, updateProfile, loading }}>
+        <AuthContext.Provider value={{ user, secretKey, login, register, logout, updateProfile, resetKeys, loading }}>
             {children}
         </AuthContext.Provider>
     );

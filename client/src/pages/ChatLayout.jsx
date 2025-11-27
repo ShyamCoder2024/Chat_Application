@@ -15,7 +15,7 @@ import { deriveSharedKey, decryptMessage } from '../utils/crypto';
 import './ChatLayout.css';
 
 const ChatLayout = () => {
-    const { user, logout, updateProfile, secretKey } = useAuth();
+    const { user, logout, updateProfile, secretKey, resetKeys } = useAuth();
     const { socket, onlineUsers } = useSocket();
     const { playSound } = useSound();
 
@@ -689,6 +689,7 @@ const ChatLayout = () => {
                             onLogout={logout}
                             onSave={updateProfile}
                             onBack={() => window.history.back()}
+                            onResetKeys={resetKeys}
                         />
                     </div>
                 ) : view === 'user-profile' ? (
