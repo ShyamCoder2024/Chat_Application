@@ -8,8 +8,12 @@ import { SocketProvider } from './context/SocketContext.jsx'
 import { SoundProvider } from './context/SoundContext.jsx'
 import './index.css'
 
+import ErrorBoundary from './components/atoms/ErrorBoundary.jsx'
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )
