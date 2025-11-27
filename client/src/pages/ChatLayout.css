@@ -1,8 +1,8 @@
 .chat-layout {
     display: flex;
     flex-direction: row;
-    height: 100vh;
-    height: 100dvh;
+    height: 100%;
+    /* Relies on body height */
     width: 100%;
     background-color: var(--color-cream);
     overflow: hidden;
