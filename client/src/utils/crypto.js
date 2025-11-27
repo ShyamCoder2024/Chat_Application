@@ -6,15 +6,8 @@ import CryptoJS from 'crypto-js';
 
 const APP_SECRET = "meetpune_simple_secret_key_2024"; // In production, use env var
 
-export const generateKeyPair = () => {
-    // Dummy function to keep AuthContext from breaking
-    return { publicKey: 'simple_mode', secretKey: 'simple_mode' };
-};
-
-export const deriveSharedKey = (mySecretKey, theirPublicKey) => {
-    // Dummy function - we don't need shared keys anymore
-    return "simple_shared_key";
-};
+// Legacy functions removed for clarity
+// We now use Simple AES with a static APP_SECRET for robust, error-free encryption.
 
 export const encryptMessage = (message, sharedKey) => {
     // Simple AES Encryption

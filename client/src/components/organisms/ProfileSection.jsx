@@ -21,10 +21,13 @@ const ProfileSection = ({ user, onSave, onLogout, onBack, onResetKeys }) => {
     const { soundEnabled, setSoundEnabled } = useSound();
 
     useEffect(() => {
-        if (user?._id) {
-            fetchBlockedUsers();
+        if (user && !isEditing) {
+            setFirstName(user.firstName || '');
+            setLastName(user.lastName || '');
+            setBio(user.bio || '');
+            setAvatar(user.profilePic || '');
         }
-    }, [user]);
+    }, [user, isEditing]);
 
     const fetchBlockedUsers = async () => {
         try {
@@ -59,7 +62,11 @@ const ProfileSection = ({ user, onSave, onLogout, onBack, onResetKeys }) => {
         setError('');
         try {
             await onSave({ firstName, lastName, bio, profilePic: avatar });
-            setIsEditing(false);
+            // Small delay to allow parent state to update before switching view
+            // This prevents the "jitter" where old data flashes briefly
+            setTimeout(() => {
+                setIsEditing(false);
+            }, 100);
         } catch (err) {
             setError('Failed to save profile. Please try again.');
         } finally {

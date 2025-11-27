@@ -92,6 +92,11 @@ io.on('connection', (socket) => {
 
   socket.on('send_message', async (data) => {
     try {
+      if (!data.content || !data.chatId || !data.senderId) {
+        console.error('Invalid message data:', data);
+        return;
+      }
+
       const [newMessage, chat] = await Promise.all([
         Message.create({
           chatId: data.chatId,

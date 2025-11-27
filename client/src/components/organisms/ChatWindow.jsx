@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Send, Paperclip } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
@@ -20,18 +20,40 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const typingTimeoutRef = useRef(null);
     const { socket } = useSocket();
     const { secretKey } = useAuth();
+    const isInitialLoad = useRef(true);
 
-
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const scrollToBottom = (behavior = 'smooth') => {
+        messagesEndRef.current?.scrollIntoView({ behavior });
     };
 
+    // Instant scroll on mount/chat change, smooth on new messages
+    useLayoutEffect(() => {
+        if (messages.length > 0) {
+            if (isInitialLoad.current) {
+                scrollToBottom('auto'); // Instant
+                isInitialLoad.current = false;
+            } else {
+                scrollToBottom('smooth');
+            }
+        }
+    }, [messages, chat.id]);
 
-
+    // Reset initial load flag when chat changes
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, isTyping]);
+        isInitialLoad.current = true;
+    }, [chat.id]);
+
+    // Handle Mobile Keyboard (Visual Viewport)
+    useEffect(() => {
+        if (!window.visualViewport) return;
+
+        const handleResize = () => {
+            scrollToBottom('auto'); // Re-adjust instantly when keyboard opens
+        };
+
+        window.visualViewport.addEventListener('resize', handleResize);
+        return () => window.visualViewport.removeEventListener('resize', handleResize);
+    }, []);
 
     // Socket Typing Listeners
     useEffect(() => {

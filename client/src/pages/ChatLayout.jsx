@@ -11,7 +11,7 @@ import Avatar from '../components/atoms/Avatar'; // Import Avatar for search res
 import { Plus, MessageCircle, User as UserIcon, Search } from 'lucide-react';
 import ThemeToggle from '../components/atoms/ThemeToggle';
 import { API_URL } from '../config';
-import { deriveSharedKey, decryptMessage } from '../utils/crypto';
+import { decryptMessage } from '../utils/crypto';
 import './ChatLayout.css';
 
 const ChatLayout = () => {
@@ -74,19 +74,10 @@ const ChatLayout = () => {
 
                 // Decrypt last message if encrypted
                 if (chat.lastMessage?.nonce) {
-                    if (mySecretKey && otherUser?.publicKey) {
-                        try {
-                            const sharedKey = deriveSharedKey(mySecretKey, otherUser.publicKey);
-                            if (sharedKey) {
-                                lastMessageContent = decryptMessage(chat.lastMessage.content, chat.lastMessage.nonce, sharedKey);
-                            } else {
-                                lastMessageContent = '🔒 Encrypted message';
-                            }
-                        } catch (err) {
-                            lastMessageContent = '🔒 Encrypted message';
-                        }
-                    } else {
-                        // Nonce exists but keys are missing
+                    try {
+                        // Simple AES Decryption (Keys not needed for this mode)
+                        lastMessageContent = decryptMessage(chat.lastMessage.content, chat.lastMessage.nonce, null);
+                    } catch (err) {
                         lastMessageContent = '🔒 Encrypted message';
                     }
                 } else if (chat.lastMessage?.content && !chat.lastMessage.content.includes(' ') && chat.lastMessage.content.length > 20) {
@@ -205,16 +196,10 @@ const ChatLayout = () => {
                 // Try to decrypt for better deduplication
                 let decryptedContent = message.content;
                 if (message.nonce) {
-                    const mySecretKey = secretKey;
-                    if (mySecretKey && currentActiveChat.publicKey) {
-                        try {
-                            const sharedKey = deriveSharedKey(mySecretKey, currentActiveChat.publicKey);
-                            if (sharedKey) {
-                                decryptedContent = decryptMessage(message.content, message.nonce, sharedKey);
-                            }
-                        } catch (err) {
-                            // console.log("Deduplication decryption failed");
-                        }
+                    try {
+                        decryptedContent = decryptMessage(message.content, message.nonce, null);
+                    } catch (err) {
+                        // console.log("Deduplication decryption failed");
                     }
                 }
 
@@ -272,18 +257,9 @@ const ChatLayout = () => {
                             let previewContent = message.content;
                             // Decrypt preview if needed
                             if (message.nonce) {
-                                const mySecretKey = secretKey;
-                                // Use the chat's public key which we should have
-                                if (mySecretKey && chat.publicKey) {
-                                    try {
-                                        const sharedKey = deriveSharedKey(mySecretKey, chat.publicKey);
-                                        if (sharedKey) {
-                                            previewContent = decryptMessage(message.content, message.nonce, sharedKey);
-                                        }
-                                    } catch (err) {
-                                        previewContent = '🔒 Encrypted message';
-                                    }
-                                } else {
+                                try {
+                                    previewContent = decryptMessage(message.content, message.nonce, null);
+                                } catch (err) {
                                     previewContent = '🔒 Encrypted message';
                                 }
                             }
@@ -315,16 +291,10 @@ const ChatLayout = () => {
                     let lastMessageContent = message.content;
                     // Decrypt initial message for new chat
                     if (message.nonce) {
-                        const mySecretKey = secretKey;
-                        if (mySecretKey && otherUser?.publicKey) {
-                            try {
-                                const sharedKey = deriveSharedKey(mySecretKey, otherUser.publicKey);
-                                if (sharedKey) {
-                                    lastMessageContent = decryptMessage(message.content, message.nonce, sharedKey);
-                                }
-                            } catch (err) {
-                                lastMessageContent = '🔒 Encrypted message';
-                            }
+                        try {
+                            lastMessageContent = decryptMessage(message.content, message.nonce, null);
+                        } catch (err) {
+                            lastMessageContent = '🔒 Encrypted message';
                         }
                     }
 
@@ -392,11 +362,16 @@ const ChatLayout = () => {
         return () => window.removeEventListener('popstate', handlePopState);
     }, []);
 
+    const currentChatIdRef = useRef(null);
+
     const handleSelectChat = React.useCallback(async (chat) => {
         // Push state only if we're not already in this chat (basic check)
         if (activeChat?.id !== chat.id) {
             window.history.pushState({ view: 'chat' }, '');
         }
+
+        // Update Ref to track the LATEST requested chat
+        currentChatIdRef.current = chat.id;
 
         // 1. Set initial chat state (optimistic)
         let currentChat = chat;
@@ -409,10 +384,12 @@ const ChatLayout = () => {
 
         try {
             // 2. Fetch FRESH user details to get the latest Public Key
-            // This is critical for E2EE if the other user re-installed the app
             if (chat.otherUserId) {
                 const userRes = await fetch(`${API_URL}/api/users/${chat.otherUserId}`);
                 if (userRes.ok) {
+                    // Check race condition: Is this still the active chat?
+                    if (currentChatIdRef.current !== chat.id) return;
+
                     const userData = await userRes.json();
                     if (userData.publicKey && userData.publicKey !== chat.publicKey) {
                         console.log("Updated public key for user:", userData.firstName);
@@ -425,7 +402,11 @@ const ChatLayout = () => {
                                 ? `${userData.firstName} ${userData.lastName}`
                                 : (userData.name || userData.phone || 'Unknown User')
                         };
-                        setActiveChat(currentChat);
+
+                        // Check race condition again before state update
+                        if (currentChatIdRef.current === chat.id) {
+                            setActiveChat(currentChat);
+                        }
 
                         // Update in chats list too to keep it in sync
                         setChats(prev => prev.map(c => c.id === chat.id ? currentChat : c));
@@ -436,6 +417,10 @@ const ChatLayout = () => {
             // 3. Fetch Messages
             const res = await fetch(`${API_URL}/api/chats/${chat.id}/messages`);
             const data = await res.json();
+
+            // Check race condition: Is this still the active chat?
+            if (currentChatIdRef.current !== chat.id) return;
+
             const formattedMessages = data.map(msg => ({
                 id: msg._id,
                 content: msg.content,
@@ -447,7 +432,10 @@ const ChatLayout = () => {
             setMessages(formattedMessages);
         } catch (err) {
             console.error("Error fetching messages/user:", err);
-            setError("Failed to load chat. Please try again.");
+            // Only show error if we are still on that chat
+            if (currentChatIdRef.current === chat.id) {
+                setError("Failed to load chat. Please try again.");
+            }
         }
     }, [activeChat, socket, user._id]);
 
