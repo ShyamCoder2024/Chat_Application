@@ -12,8 +12,18 @@ export const ThemeProvider = ({ children }) => {
         localStorage.setItem('btween_theme', theme);
     }, [theme]);
 
-    const toggleTheme = () => {
-        setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+    const toggleTheme = async () => {
+        // Check if View Transition API is supported
+        if (!document.startViewTransition) {
+            // Fallback for browsers without View Transition API
+            setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+            return;
+        }
+
+        // Use View Transition API for smooth animation
+        await document.startViewTransition(() => {
+            setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+        }).ready;
     };
 
     const value = React.useMemo(() => ({ theme, toggleTheme }), [theme]);

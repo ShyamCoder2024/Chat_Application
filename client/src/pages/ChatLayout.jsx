@@ -68,40 +68,55 @@ const ChatLayout = () => {
                 throw new Error(`Failed to load chats: ${res.status}`);
             }
             const data = await res.json();
+
+            // Defensive check - ensure data is array
+            if (!Array.isArray(data)) {
+                console.error('Invalid chats data received:', data);
+                setChats([]);
+                setIsChatsLoading(false);
+                return;
+            }
+
             const mySecretKey = secretKey;
 
             const formattedChats = data.map(chat => {
-                const otherUser = chat.userIds.find(u => u._id !== user._id);
+                try {
+                    const otherUser = chat.userIds?.find(u => u._id !== user._id);
 
-                let lastMessageContent = chat.lastMessage?.content || 'No messages yet';
+                    let lastMessageContent = chat.lastMessage?.content || 'No messages yet';
 
-                // Decrypt last message if encrypted
-                if (chat.lastMessage?.nonce) {
-                    try {
-                        // Simple AES Decryption (Keys not needed for this mode)
-                        lastMessageContent = decryptMessage(chat.lastMessage.content, chat.lastMessage.nonce, null);
-                    } catch (err) {
-                        lastMessageContent = 'Message'; // Cleaner fallback
+                    // Decrypt last message if encrypted
+                    if (chat.lastMessage?.nonce) {
+                        try {
+                            // Simple AES Decryption (Keys not needed for this mode)
+                            lastMessageContent = decryptMessage(chat.lastMessage.content, chat.lastMessage.nonce, null);
+                        } catch (err) {
+                            lastMessageContent = 'Message'; // Cleaner fallback
+                        }
+                    } else if (chat.lastMessage?.content && chat.lastMessage.content.startsWith('U2FsdGVkX1')) {
+                        // Heuristic: Check for standard CryptoJS prefix (Salted__)
+                        lastMessageContent = 'Message';
                     }
-                } else if (chat.lastMessage?.content && chat.lastMessage.content.startsWith('U2FsdGVkX1')) {
-                    // Heuristic: Check for standard CryptoJS prefix (Salted__)
-                    lastMessageContent = 'Message';
-                }
 
-                return {
-                    id: chat._id,
-                    name: (otherUser?.firstName && otherUser?.lastName)
-                        ? `${otherUser.firstName} ${otherUser.lastName}`
-                        : (otherUser?.name || otherUser?.phone || 'Unknown User'),
-                    avatar: otherUser?.profilePic,
-                    otherUserId: otherUser?._id,
-                    publicKey: otherUser?.publicKey,
-                    lastSeen: otherUser?.lastSeen,
-                    lastMessage: lastMessageContent,
-                    time: chat.lastMessage?.timestamp ? new Date(chat.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-                    unreadCount: chat.unreadCounts ? (chat.unreadCounts[user._id] || 0) : 0
-                };
-            });
+                    return {
+                        id: chat._id,
+                        name: (otherUser?.firstName && otherUser?.lastName)
+                            ? `${otherUser.firstName} ${otherUser.lastName}`
+                            : (otherUser?.name || otherUser?.phone || 'Unknown User'),
+                        avatar: otherUser?.profilePic,
+                        otherUserId: otherUser?._id,
+                        publicKey: otherUser?.publicKey,
+                        lastSeen: otherUser?.lastSeen,
+                        lastMessage: lastMessageContent,
+                        time: chat.lastMessage?.timestamp ? new Date(chat.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                        unreadCount: chat.unreadCounts ? (chat.unreadCounts[user._id] || 0) : 0
+                    };
+                } catch (chatErr) {
+                    console.error('Error formatting chat:', chatErr);
+                    return null; // Skip problematic chat
+                }
+            }).filter(Boolean); // Remove null entries
+
             setChats(formattedChats);
         } catch (err) {
             console.error(err);
