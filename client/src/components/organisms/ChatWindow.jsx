@@ -25,17 +25,40 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     };
 
     useEffect(() => {
-        if (chat.publicKey) {
+        const initializeEncryption = async () => {
+            if (!chat) return;
+
             const mySecretKey = localStorage.getItem('chat_secret_key');
-            if (mySecretKey) {
+            if (!mySecretKey) return;
+
+            if (chat.publicKey) {
                 try {
                     const key = deriveSharedKey(mySecretKey, chat.publicKey);
                     setSharedKey(key);
                 } catch (err) {
                     console.error("Error deriving shared key:", err);
                 }
+            } else if (chat.otherUserId) {
+                // Self-healing: Fetch user profile if public key is missing
+                try {
+                    console.log("Missing public key, fetching user profile...", chat.otherUserId);
+                    const res = await fetch(`${API_URL}/api/users/${chat.otherUserId}`);
+                    if (res.ok) {
+                        const userData = await res.json();
+                        if (userData.publicKey) {
+                            const key = deriveSharedKey(mySecretKey, userData.publicKey);
+                            setSharedKey(key);
+                            // Optionally update chat object in parent or local state if needed for persistence
+                            // For now, just setting sharedKey is enough to fix display
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching missing public key:", err);
+                }
             }
-        }
+        };
+
+        initializeEncryption();
     }, [chat, currentUserId]);
 
     useEffect(() => {
@@ -144,8 +167,11 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     displayMessage = { ...msg, content: decryptedContent };
                 } catch (err) {
                     // console.error("Error decrypting message:", err);
-                    displayMessage = { ...msg, content: '🔒 Encrypted message (Decryption failed)' };
+                    displayMessage = { ...msg, content: '🔒 Encrypted message (Waiting for key...)' };
                 }
+            } else if (msg.nonce && !sharedKey) {
+                // Encrypted but we don't have the key yet
+                displayMessage = { ...msg, content: '🔒 Loading secure message...' };
             } else if (!msg.nonce && msg.content) {
                 // Legacy message (not encrypted) or system message
                 // If it looks like base64, it might be encrypted but missing nonce (edge case)
