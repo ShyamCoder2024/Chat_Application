@@ -274,6 +274,7 @@ const ChatLayout = () => {
             const formattedMessages = data.map(msg => ({
                 id: msg._id,
                 content: msg.content,
+                nonce: msg.nonce, // Critical: Include nonce for decryption
                 senderId: msg.senderId,
                 time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 status: msg.status
