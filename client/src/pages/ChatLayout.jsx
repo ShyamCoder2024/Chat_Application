@@ -827,20 +827,6 @@ const ChatLayout = () => {
                 </div>
             )}
 
-            {/* Connection Status Banners */}
-            <div className="status-banners">
-                {!isSocketConnected && (
-                    <div className="status-banner warning">
-                        <span>Connecting to server...</span>
-                    </div>
-                )}
-                {isChatsLoading && !isSocketConnected && (
-                    <div className="status-banner info">
-                        <span>Server might be waking up (this can take up to 60s)...</span>
-                    </div>
-                )}
-            </div>
-
             {showNewChatModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">

@@ -44,15 +44,23 @@
 
 .input-area {
     padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
     background-color: var(--color-white);
-    /* Match background or use specific input bg */
     display: flex;
     align-items: center;
     gap: 12px;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
     flex-shrink: 0;
-    /* Prevent shrinking */
+    margin-top: auto;
+    /* Push to bottom */
+}
+
+/* Mobile-specific fix for keyboard behavior */
+@media (max-width: 768px) {
+    .input-area {
+        padding-bottom: 12px;
+        /* Remove safe-area on mobile to eliminate gap */
+    }
 }
 
 .message-form {
