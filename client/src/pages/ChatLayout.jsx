@@ -71,17 +71,23 @@ const ChatLayout = () => {
                 let lastMessageContent = chat.lastMessage?.content || 'No messages yet';
 
                 // Decrypt last message if encrypted
-                if (chat.lastMessage?.nonce && mySecretKey && otherUser?.publicKey) {
-                    try {
-                        const sharedKey = deriveSharedKey(mySecretKey, otherUser.publicKey);
-                        if (sharedKey) {
-                            lastMessageContent = decryptMessage(chat.lastMessage.content, chat.lastMessage.nonce, sharedKey);
+                if (chat.lastMessage?.nonce) {
+                    if (mySecretKey && otherUser?.publicKey) {
+                        try {
+                            const sharedKey = deriveSharedKey(mySecretKey, otherUser.publicKey);
+                            if (sharedKey) {
+                                lastMessageContent = decryptMessage(chat.lastMessage.content, chat.lastMessage.nonce, sharedKey);
+                            } else {
+                                lastMessageContent = '🔒 Encrypted message';
+                            }
+                        } catch (err) {
+                            lastMessageContent = '🔒 Encrypted message';
                         }
-                    } catch (err) {
-                        // console.error("Error decrypting preview:", err);
+                    } else {
+                        // Nonce exists but keys are missing
                         lastMessageContent = '🔒 Encrypted message';
                     }
-                } else if (!chat.lastMessage?.nonce && chat.lastMessage?.content && !chat.lastMessage.content.includes(' ') && chat.lastMessage.content.length > 20) {
+                } else if (chat.lastMessage?.content && !chat.lastMessage.content.includes(' ') && chat.lastMessage.content.length > 20) {
                     // Heuristic: If no nonce, but content looks like a long continuous string (likely base64), assume it's legacy encrypted
                     lastMessageContent = '🔒 Encrypted message';
                 }
