@@ -9,6 +9,23 @@
     position: relative;
 }
 
+/* Mobile: Use fixed positioning to track visual viewport */
+@media (max-width: 768px) {
+    .chat-layout {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100%;
+        /* Tracks visual viewport */
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        z-index: 0;
+    }
+}
+
 .sidebar {
     width: 380px;
     flex: 0 0 380px;

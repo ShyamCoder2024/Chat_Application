@@ -5,6 +5,8 @@
   padding: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  /* Prevent scroll on root */
 }
 
 .logo {
