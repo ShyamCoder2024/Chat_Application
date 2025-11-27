@@ -705,10 +705,15 @@ const ChatLayout = () => {
         );
     }
 
-    return (
-        <div className="chat-layout">
+    const getMobileViewClass = () => {
+        if (view === 'chat' || view === 'user-profile') return 'mobile-view-chat';
+        return 'mobile-view-list';
+    };
 
-            <div className={`sidebar ${view !== 'chats' ? 'hidden-mobile' : ''}`}>
+    return (
+        <div className={`chat-layout ${getMobileViewClass()}`}>
+
+            <div className="sidebar">
                 <div className="sidebar-header">
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <h1 className="app-title">Messages</h1>
@@ -754,7 +759,7 @@ const ChatLayout = () => {
                 </div>
             </div>
 
-            <div className={`main-content ${view === 'chats' ? 'hidden-mobile' : ''}`}>
+            <div className="main-content">
                 {view === 'profile' ? (
                     <div className="animate-pop-in">
                         <ProfileSection

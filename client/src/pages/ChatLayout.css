@@ -77,10 +77,13 @@
     z-index: 1;
 }
 
-/* Mobile Responsiveness */
+/* Mobile Responsiveness with Smooth Transitions */
 @media (max-width: 768px) {
     .chat-layout {
         flex-direction: column;
+        position: relative;
+        overflow: hidden;
+        /* Contain slides */
     }
 
     .sidebar {
@@ -91,6 +94,8 @@
         left: 0;
         z-index: 10;
         border-right: none;
+        transform: translateX(0);
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1), opacity 0.3s ease;
     }
 
     .main-content {
@@ -100,14 +105,62 @@
         top: 0;
         left: 0;
         z-index: 20;
+        transform: translateX(100%);
+        /* Start off-screen right */
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        background-color: var(--color-white);
+        /* Ensure opaque background */
     }
 
+    /* View States */
+    .chat-layout.mobile-view-chat .sidebar {
+        transform: translateX(-20%);
+        /* Parallax effect */
+        opacity: 0;
+        /* Fade out slightly */
+        pointer-events: none;
+    }
+
+    .chat-layout.mobile-view-chat .main-content {
+        transform: translateX(0);
+        /* Slide in */
+    }
+
+    .chat-layout.mobile-view-list .sidebar {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .chat-layout.mobile-view-list .main-content {
+        transform: translateX(100%);
+        /* Slide out */
+    }
+
+    /* Remove the old hidden-mobile utility as we use transforms now */
     .hidden-mobile {
-        display: none !important;
+        display: flex !important;
+        /* Override previous display:none */
+        /* We rely on transforms now, but keep display flex to ensure layout */
     }
 
     .bottom-nav {
         display: flex;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 30;
+        /* Above everything */
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+    }
+
+    /* Hide bottom nav when in chat view */
+    .chat-layout.mobile-view-chat .bottom-nav {
+        transform: translateY(100%);
     }
 }
 
