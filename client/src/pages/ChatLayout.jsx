@@ -36,6 +36,8 @@ const ChatLayout = () => {
 
     const [error, setError] = useState(null);
 
+    const [isChatsLoading, setIsChatsLoading] = useState(true);
+
     // Fetch Chats
     useEffect(() => {
         if (view === 'chats') {
@@ -114,6 +116,8 @@ const ChatLayout = () => {
             } else {
                 setError(`Connection failed. Server: ${API_URL}. Error: ${err.message}`);
             }
+        } finally {
+            setIsChatsLoading(false);
         }
     };
 
@@ -609,7 +613,7 @@ const ChatLayout = () => {
                         chats={chats}
                         onSelectChat={handleSelectChat}
                         activeChatId={activeChat?.id}
-                        isLoading={chats.length === 0 && !activeChat}
+                        isLoading={isChatsLoading}
                         onlineUsers={onlineUsers}
                     />
                 )}

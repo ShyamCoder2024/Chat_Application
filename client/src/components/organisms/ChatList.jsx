@@ -23,19 +23,26 @@ const ChatList = ({ chats, onSelectChat, activeChatId, isLoading, onlineUsers = 
 
     return (
         <div className="chat-list">
-            {chats.map((chat) => (
-                <ChatListItem
-                    key={chat.id}
-                    name={chat.name}
-                    message={chat.lastMessage}
-                    time={chat.time}
-                    unreadCount={chat.unreadCount}
-                    avatarSrc={chat.avatar}
-                    isActive={activeChatId === chat.id}
-                    onClick={() => onSelectChat(chat)}
-                    isOnline={onlineUsers.has(chat.otherUserId)}
-                />
-            ))}
+            {chats.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#888', marginTop: '20px' }}>
+                    <p>No chats yet</p>
+                    <p style={{ fontSize: '12px' }}>Start a new conversation!</p>
+                </div>
+            ) : (
+                chats.map((chat) => (
+                    <ChatListItem
+                        key={chat.id}
+                        name={chat.name}
+                        message={chat.lastMessage}
+                        time={chat.time}
+                        unreadCount={chat.unreadCount}
+                        avatarSrc={chat.avatar}
+                        isActive={activeChatId === chat.id}
+                        onClick={() => onSelectChat(chat)}
+                        isOnline={onlineUsers.has(chat.otherUserId)}
+                    />
+                ))
+            )}
         </div>
     );
 };
