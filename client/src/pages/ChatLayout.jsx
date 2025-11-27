@@ -332,7 +332,8 @@ const ChatLayout = () => {
             }));
             setMessages(formattedMessages);
         } catch (err) {
-            console.error(err);
+            console.error("Error fetching messages:", err);
+            setError("Failed to load messages. Please try again.");
         }
     };
 
