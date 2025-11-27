@@ -47,4 +47,4 @@ const ChatList = ({ chats, onSelectChat, activeChatId, isLoading, onlineUsers = 
     );
 };
 
-export default ChatList;
+export default React.memo(ChatList);

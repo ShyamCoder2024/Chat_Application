@@ -43,7 +43,7 @@ const ChatLayout = () => {
         if (view === 'chats') {
             fetchChats();
         }
-    }, [user, view]);
+    }, [user, view, secretKey]); // Added secretKey dependency
 
     const fetchChats = async () => {
         if (!user) return;
@@ -121,12 +121,15 @@ const ChatLayout = () => {
         }
     };
 
+    const [isSocketConnected, setIsSocketConnected] = useState(socket?.connected || false);
+
     // Re-sync on socket reconnection
     useEffect(() => {
         if (!socket) return;
 
-        const handleReconnect = () => {
-            console.log("Socket reconnected, refreshing data...");
+        const handleConnect = () => {
+            console.log("Socket connected/reconnected");
+            setIsSocketConnected(true);
             fetchChats();
             if (activeChat) {
                 socket.emit('join_room', activeChat.id);
@@ -148,12 +151,44 @@ const ChatLayout = () => {
             }
         };
 
-        socket.on('connect', handleReconnect);
+        const handleDisconnect = () => {
+            console.log("Socket disconnected");
+            setIsSocketConnected(false);
+        };
+
+        socket.on('connect', handleConnect);
+        socket.on('disconnect', handleDisconnect);
+
+        // Initial check
+        setIsSocketConnected(socket.connected);
 
         return () => {
-            socket.off('connect', handleReconnect);
+            socket.off('connect', handleConnect);
+            socket.off('disconnect', handleDisconnect);
         };
     }, [socket, activeChat]);
+
+    // Ref to track activeChat for socket listener without re-subscribing
+    const activeChatRef = useRef(activeChat);
+    useEffect(() => {
+        activeChatRef.current = activeChat;
+    }, [activeChat]);
+
+    // Helper to fetch new chat with retry
+    const fetchNewChatWithRetry = async (chatId, retries = 3, delay = 1000) => {
+        for (let i = 0; i < retries; i++) {
+            try {
+                const res = await fetch(`${API_URL}/api/chats/single/${chatId}`);
+                if (res.ok) {
+                    return await res.json();
+                }
+            } catch (err) {
+                console.warn(`Attempt ${i + 1} to fetch new chat failed:`, err);
+            }
+            if (i < retries - 1) await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        throw new Error(`Failed to fetch new chat ${chatId} after ${retries} attempts`);
+    };
 
     // Socket Listeners
     useEffect(() => {
@@ -163,16 +198,17 @@ const ChatLayout = () => {
             playSound('received'); // Play received sound
 
             const currentChats = chatsRef.current;
+            const currentActiveChat = activeChatRef.current; // Use Ref!
             const chatExists = currentChats.some(c => c.id === message.chatId);
 
-            if (activeChat && message.chatId === activeChat.id) {
+            if (currentActiveChat && message.chatId === currentActiveChat.id) {
                 // Try to decrypt for better deduplication
                 let decryptedContent = message.content;
                 if (message.nonce) {
                     const mySecretKey = secretKey;
-                    if (mySecretKey && activeChat.publicKey) {
+                    if (mySecretKey && currentActiveChat.publicKey) {
                         try {
-                            const sharedKey = deriveSharedKey(mySecretKey, activeChat.publicKey);
+                            const sharedKey = deriveSharedKey(mySecretKey, currentActiveChat.publicKey);
                             if (sharedKey) {
                                 decryptedContent = decryptMessage(message.content, message.nonce, sharedKey);
                             }
@@ -225,7 +261,7 @@ const ChatLayout = () => {
                 });
 
                 // Mark as read immediately if chat is open
-                markChatAsRead(activeChat.id);
+                markChatAsRead(currentActiveChat.id);
             }
 
             // Update Chat List (Sorting & Preview)
@@ -256,7 +292,7 @@ const ChatLayout = () => {
                                 ...chat,
                                 lastMessage: previewContent,
                                 time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                unreadCount: (activeChat?.id === message.chatId) ? 0 : (chat.unreadCount || 0) + 1
+                                unreadCount: (currentActiveChat?.id === message.chatId) ? 0 : (chat.unreadCount || 0) + 1
                             };
                         }
                         return chat;
@@ -271,46 +307,45 @@ const ChatLayout = () => {
                     return updatedChats;
                 });
             } else {
-                // New Chat! Fetch details and add to list
+                // New Chat! Fetch details and add to list with RETRY
                 try {
-                    const res = await fetch(`${API_URL}/api/chats/single/${message.chatId}`);
-                    if (res.ok) {
-                        const newChatData = await res.json();
-                        const otherUser = newChatData.userIds.find(u => u._id !== user._id);
+                    const newChatData = await fetchNewChatWithRetry(message.chatId);
+                    const otherUser = newChatData.userIds.find(u => u._id !== user._id);
 
-                        let lastMessageContent = message.content;
-                        // Decrypt initial message for new chat
-                        if (message.nonce) {
-                            const mySecretKey = secretKey;
-                            if (mySecretKey && otherUser?.publicKey) {
-                                try {
-                                    const sharedKey = deriveSharedKey(mySecretKey, otherUser.publicKey);
-                                    if (sharedKey) {
-                                        lastMessageContent = decryptMessage(message.content, message.nonce, sharedKey);
-                                    }
-                                } catch (err) {
-                                    lastMessageContent = '🔒 Encrypted message';
+                    let lastMessageContent = message.content;
+                    // Decrypt initial message for new chat
+                    if (message.nonce) {
+                        const mySecretKey = secretKey;
+                        if (mySecretKey && otherUser?.publicKey) {
+                            try {
+                                const sharedKey = deriveSharedKey(mySecretKey, otherUser.publicKey);
+                                if (sharedKey) {
+                                    lastMessageContent = decryptMessage(message.content, message.nonce, sharedKey);
                                 }
+                            } catch (err) {
+                                lastMessageContent = '🔒 Encrypted message';
                             }
                         }
-
-                        const newChat = {
-                            id: newChatData._id,
-                            name: (otherUser?.firstName && otherUser?.lastName)
-                                ? `${otherUser.firstName} ${otherUser.lastName}`
-                                : (otherUser?.name || otherUser?.phone || 'Unknown User'),
-                            avatar: otherUser?.profilePic,
-                            otherUserId: otherUser?._id,
-                            publicKey: otherUser?.publicKey,
-                            lastSeen: otherUser?.lastSeen,
-                            lastMessage: lastMessageContent,
-                            time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            unreadCount: 1
-                        };
-                        setChats(prev => [newChat, ...prev]);
                     }
+
+                    const newChat = {
+                        id: newChatData._id,
+                        name: (otherUser?.firstName && otherUser?.lastName)
+                            ? `${otherUser.firstName} ${otherUser.lastName}`
+                            : (otherUser?.name || otherUser?.phone || 'Unknown User'),
+                        avatar: otherUser?.profilePic,
+                        otherUserId: otherUser?._id,
+                        publicKey: otherUser?.publicKey,
+                        lastSeen: otherUser?.lastSeen,
+                        lastMessage: lastMessageContent,
+                        time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        unreadCount: 1
+                    };
+                    setChats(prev => [newChat, ...prev]);
                 } catch (err) {
-                    console.error("Error fetching new chat:", err);
+                    console.error("Error fetching new chat after retries:", err);
+                    // Fallback: Force full refresh
+                    fetchChats();
                 }
             }
 
@@ -319,7 +354,7 @@ const ChatLayout = () => {
         });
 
         return () => socket.off('receive_message');
-    }, [socket, activeChat, playSound, secretKey, user._id]); // Added secretKey and user._id
+    }, [socket, playSound, secretKey, user._id]); // Removed activeChat from dependency
 
     const markChatAsRead = async (chatId) => {
         try {
@@ -357,7 +392,7 @@ const ChatLayout = () => {
         return () => window.removeEventListener('popstate', handlePopState);
     }, []);
 
-    const handleSelectChat = async (chat) => {
+    const handleSelectChat = React.useCallback(async (chat) => {
         // Push state only if we're not already in this chat (basic check)
         if (activeChat?.id !== chat.id) {
             window.history.pushState({ view: 'chat' }, '');
@@ -414,9 +449,9 @@ const ChatLayout = () => {
             console.error("Error fetching messages/user:", err);
             setError("Failed to load chat. Please try again.");
         }
-    };
+    }, [activeChat, socket, user._id]);
 
-    const handleSendMessage = (content, nonce = null, plaintext = null) => {
+    const handleSendMessage = React.useCallback((content, nonce = null, plaintext = null) => {
         if (!socket || !activeChat) return;
 
         playSound('sent'); // Play sent sound
@@ -463,7 +498,7 @@ const ChatLayout = () => {
             content, // Send ENCRYPTED content to server
             nonce
         });
-    };
+    }, [socket, activeChat, playSound, user._id]);
 
     // Listen for status updates
     useEffect(() => {
@@ -687,7 +722,12 @@ const ChatLayout = () => {
 
             <div className={`sidebar ${view !== 'chats' ? 'hidden-mobile' : ''}`}>
                 <div className="sidebar-header">
-                    <h1 className="app-title">Messages</h1>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <h1 className="app-title">Messages</h1>
+                        {!isSocketConnected && (
+                            <span style={{ fontSize: '12px', color: 'orange', fontWeight: '500' }}>Connecting...</span>
+                        )}
+                    </div>
                     <div className="header-actions">
                         <ThemeToggle />
                         <Button variant="secondary" size="icon" onClick={handleMyProfileClick} title="My Profile">

@@ -38,4 +38,4 @@ const ChatListItem = ({
     );
 };
 
-export default ChatListItem;
+export default React.memo(ChatListItem);
