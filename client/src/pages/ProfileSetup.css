@@ -1,10 +1,11 @@
 .setup-container {
-    height: 100vh;
+    min-height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: var(--color-cream);
     padding: var(--spacing-xl);
+    overflow-y: auto;
 }
 
 .setup-card {

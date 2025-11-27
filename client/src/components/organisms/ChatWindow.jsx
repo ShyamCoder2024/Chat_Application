@@ -9,7 +9,7 @@ import ChatMenu from '../molecules/ChatMenu';
 import Input from '../atoms/Input';
 import Button from '../atoms/Button';
 import { formatLastSeen, formatMessageDate } from '../../utils/dateUtils';
-import { deriveSharedKey, encryptMessage, decryptMessage } from '../../utils/crypto';
+import { encryptMessage, decryptMessage } from '../../utils/crypto';
 import { API_URL } from '../../config';
 import './ChatWindow.css';
 

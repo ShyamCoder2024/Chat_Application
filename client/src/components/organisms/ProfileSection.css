@@ -195,8 +195,8 @@ input:checked+.slider:before {
 @media (max-width: 768px) {
     .profile-content {
         padding: var(--spacing-xl) var(--spacing-md);
-        padding-bottom: 120px;
-        /* Ensure enough space for bottom nav/safe area */
+        padding-bottom: 40px;
+        /* Ensure enough space for safe area */
     }
 
     .profile-header {
