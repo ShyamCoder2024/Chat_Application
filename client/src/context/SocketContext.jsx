@@ -13,24 +13,42 @@ export const SocketProvider = ({ children }) => {
     const { user } = useAuth();
     const [onlineUsers, setOnlineUsers] = useState(new Set());
 
+    const [isConnected, setIsConnected] = useState(false);
+
     useEffect(() => {
         if (user) {
             const newSocket = io(API_URL, {
                 parser: msgpackParser,
-                transports: ['polling', 'websocket'], // Force polling first for better compatibility
-                reconnectionAttempts: 5,
-                timeout: 10000,
+                transports: ['polling', 'websocket'],
+                reconnection: true,
+                reconnectionAttempts: Infinity, // Keep trying to reconnect
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                timeout: 20000,
             });
             setSocket(newSocket);
 
-            newSocket.on('connect', () => {
+            const handleConnect = () => {
                 console.log("Socket connected, logging in...");
+                setIsConnected(true);
                 newSocket.emit('login', user._id.toString());
-            });
+            };
 
-            // Emit immediately in case already connected (though unlikely with new socket)
+            const handleDisconnect = (reason) => {
+                console.log("Socket disconnected:", reason);
+                setIsConnected(false);
+                if (reason === "io server disconnect") {
+                    // the disconnection was initiated by the server, you need to reconnect manually
+                    newSocket.connect();
+                }
+            };
+
+            newSocket.on('connect', handleConnect);
+            newSocket.on('disconnect', handleDisconnect);
+
+            // Emit immediately in case already connected
             if (newSocket.connected) {
-                newSocket.emit('login', user._id.toString());
+                handleConnect();
             }
 
             newSocket.on('online_users', (users) => {
@@ -49,14 +67,22 @@ export const SocketProvider = ({ children }) => {
                 });
             });
 
-            return () => newSocket.close();
+            return () => {
+                newSocket.off('connect', handleConnect);
+                newSocket.off('disconnect', handleDisconnect);
+                newSocket.close();
+            };
         } else {
-            if (socket) socket.close();
+            if (socket) {
+                socket.close();
+                setSocket(null);
+                setIsConnected(false);
+            }
         }
     }, [user]);
 
     return (
-        <SocketContext.Provider value={{ socket, onlineUsers }}>
+        <SocketContext.Provider value={{ socket, onlineUsers, isConnected }}>
             {children}
         </SocketContext.Provider>
     );

@@ -79,6 +79,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join_room', (chatId) => {
+    console.log(`Socket ${socket.id} joined room ${chatId}`);
     socket.join(chatId);
   });
 
@@ -97,6 +98,8 @@ io.on('connection', (socket) => {
         return;
       }
 
+      console.log(`Processing message from ${data.senderId} in chat ${data.chatId}`);
+
       const [newMessage, chat] = await Promise.all([
         Message.create({
           chatId: data.chatId,
@@ -106,6 +109,11 @@ io.on('connection', (socket) => {
         }),
         Chat.findById(data.chatId)
       ]);
+
+      if (!chat) {
+        console.error(`Chat not found: ${data.chatId}`);
+        return;
+      }
 
       const otherUserId = chat.userIds.find(id => id.toString() !== data.senderId);
 
@@ -134,6 +142,8 @@ io.on('connection', (socket) => {
         receiverSockets.forEach(socketId => {
           io.to(socketId).emit('receive_message', newMessage);
         });
+      } else {
+        console.log(`User ${receiverId} is offline. Message saved.`);
       }
 
     } catch (err) {

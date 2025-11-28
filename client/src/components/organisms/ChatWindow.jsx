@@ -13,14 +13,16 @@ import { encryptMessage, decryptMessage } from '../../utils/crypto';
 import { API_URL } from '../../config';
 import './ChatWindow.css';
 
-const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen }) => {
+const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen, onLoadMore, hasMore, loadingMore }) => {
     const [newMessage, setNewMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const { socket } = useSocket();
     const { secretKey } = useAuth();
     const isInitialLoad = useRef(true);
+    const previousScrollHeightRef = useRef(0);
 
     const scrollToBottom = (behavior = 'smooth') => {
         messagesEndRef.current?.scrollIntoView({ behavior });
@@ -32,15 +34,33 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             if (isInitialLoad.current) {
                 scrollToBottom('auto'); // Instant
                 isInitialLoad.current = false;
+            } else if (loadingMore) {
+                // Restore scroll position after loading more
+                if (messagesContainerRef.current) {
+                    const newScrollHeight = messagesContainerRef.current.scrollHeight;
+                    const scrollDiff = newScrollHeight - previousScrollHeightRef.current;
+                    messagesContainerRef.current.scrollTop = scrollDiff;
+                }
             } else {
-                scrollToBottom('smooth');
+                // Only scroll to bottom if we are already near bottom or it's a new message from us
+                const container = messagesContainerRef.current;
+                if (container) {
+                    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+                    const lastMessage = messages[messages.length - 1];
+                    const isMyMessage = lastMessage?.senderId === currentUserId;
+
+                    if (isNearBottom || isMyMessage) {
+                        scrollToBottom('smooth');
+                    }
+                }
             }
         }
-    }, [messages, chat.id]);
+    }, [messages, chat.id, loadingMore, currentUserId]);
 
     // Reset initial load flag when chat changes
     useEffect(() => {
         isInitialLoad.current = true;
+        previousScrollHeightRef.current = 0;
     }, [chat.id]);
 
     // Reset initial load flag when chat changes
@@ -101,6 +121,16 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         };
     }, []);
+
+    const handleScroll = () => {
+        if (messagesContainerRef.current) {
+            const { scrollTop, scrollHeight } = messagesContainerRef.current;
+            if (scrollTop === 0 && hasMore && !loadingMore) {
+                previousScrollHeightRef.current = scrollHeight;
+                onLoadMore();
+            }
+        }
+    };
 
     const handleSend = (e) => {
         e.preventDefault();
@@ -192,7 +222,16 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 }
             />
 
-            <div className="messages-area">
+            <div
+                className="messages-area"
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+            >
+                {loadingMore && (
+                    <div style={{ textAlign: 'center', padding: '10px', color: '#888', fontSize: '12px' }}>
+                        Loading older messages...
+                    </div>
+                )}
                 <div className="retention-notice">
                     <p>Messages are end-to-end encrypted 🔒 and auto-delete after 24 hours.</p>
                 </div>

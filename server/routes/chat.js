@@ -44,6 +44,9 @@ router.post('/', async (req, res) => {
 // Get All Chats for User
 router.get('/:userId', async (req, res) => {
     try {
+        const { page = 1, limit = 20 } = req.query;
+        const skip = (page - 1) * limit;
+
         const currentUser = await User.findById(req.params.userId);
         const blockedUserIds = new Set(currentUser.blockedUsers.map(id => id.toString()));
 
@@ -52,6 +55,8 @@ router.get('/:userId', async (req, res) => {
         })
             .populate('userIds', 'firstName lastName name phone profilePic lastSeen publicKey')
             .sort({ updatedAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit))
             .lean();
 
         // Deduplicate chats based on other user ID

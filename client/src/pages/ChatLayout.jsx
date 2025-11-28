@@ -16,7 +16,7 @@ import './ChatLayout.css';
 
 const ChatLayout = () => {
     const { user, logout, updateProfile, secretKey } = useAuth();
-    const { socket, onlineUsers } = useSocket();
+    const { socket, onlineUsers, isConnected } = useSocket();
     const { playSound } = useSound();
 
     const [chats, setChats] = useState([]);
@@ -59,7 +59,8 @@ const ChatLayout = () => {
 
             console.log(`Fetching chats from: ${API_URL}/api/chats/${user._id}`);
 
-            const res = await fetch(`${API_URL}/api/chats/${user._id}`, {
+            // Pagination: Fetch first 20 chats for speed
+            const res = await fetch(`${API_URL}/api/chats/${user._id}?page=1&limit=20`, {
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -130,7 +131,9 @@ const ChatLayout = () => {
         }
     };
 
-    const [isSocketConnected, setIsSocketConnected] = useState(socket?.connected || false);
+
+
+    // const [isSocketConnected, setIsSocketConnected] = useState(socket?.connected || false); // Use context value instead
 
     // Re-sync on socket reconnection
     useEffect(() => {
@@ -138,7 +141,7 @@ const ChatLayout = () => {
 
         const handleConnect = () => {
             console.log("Socket connected/reconnected");
-            setIsSocketConnected(true);
+            // setIsSocketConnected(true); // Handled by context
             fetchChats();
             if (activeChat) {
                 socket.emit('join_room', activeChat.id);
@@ -162,14 +165,14 @@ const ChatLayout = () => {
 
         const handleDisconnect = () => {
             console.log("Socket disconnected");
-            setIsSocketConnected(false);
+            // setIsSocketConnected(false); // Handled by context
         };
 
         socket.on('connect', handleConnect);
         socket.on('disconnect', handleDisconnect);
 
         // Initial check
-        setIsSocketConnected(socket.connected);
+        // setIsSocketConnected(socket.connected);
 
         return () => {
             socket.off('connect', handleConnect);
@@ -258,6 +261,7 @@ const ChatLayout = () => {
                         content: message.content, // Keep as is (encrypted)
                         nonce: message.nonce,
                         senderId: message.senderId,
+                        createdAt: message.createdAt, // Store raw date
                         time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         status: message.status
                     }];
@@ -432,8 +436,8 @@ const ChatLayout = () => {
                 }
             }
 
-            // 3. Fetch Messages
-            const res = await fetch(`${API_URL}/api/chats/${chat.id}/messages`);
+            // 3. Fetch Messages (Pagination: First 50)
+            const res = await fetch(`${API_URL}/api/chats/${chat.id}/messages?limit=50`);
             const data = await res.json();
 
             // Check race condition: Is this still the active chat?
@@ -444,10 +448,12 @@ const ChatLayout = () => {
                 content: msg.content,
                 nonce: msg.nonce, // Critical: Include nonce for decryption
                 senderId: msg.senderId,
+                createdAt: msg.createdAt, // Store raw date
                 time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 status: msg.status
             }));
             setMessages(formattedMessages);
+            setHasMoreMessages(formattedMessages.length >= 50); // If we got 50, there might be more
         } catch (err) {
             console.error("Error fetching messages/user:", err);
             // Only show error if we are still on that chat
@@ -505,6 +511,43 @@ const ChatLayout = () => {
             nonce
         });
     }, [socket, activeChat, playSound, user._id]);
+
+    const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+
+    const loadMoreMessages = async () => {
+        if (!activeChat || loadingMoreMessages || !hasMoreMessages || messages.length === 0) return;
+
+        setLoadingMoreMessages(true);
+        const oldestMessage = messages[0];
+        const before = oldestMessage.createdAt || new Date().toISOString();
+
+        try {
+            const res = await fetch(`${API_URL}/api/chats/${activeChat.id}/messages?limit=50&before=${before}`);
+            const data = await res.json();
+
+            if (data.length < 50) {
+                setHasMoreMessages(false);
+            }
+
+            if (data.length > 0) {
+                const formattedMessages = data.map(msg => ({
+                    id: msg._id,
+                    content: msg.content,
+                    nonce: msg.nonce,
+                    senderId: msg.senderId,
+                    createdAt: msg.createdAt,
+                    time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    status: msg.status
+                }));
+                setMessages(prev => [...formattedMessages, ...prev]);
+            }
+        } catch (err) {
+            console.error("Error loading more messages:", err);
+        } finally {
+            setLoadingMoreMessages(false);
+        }
+    };
 
     // Listen for status updates
     useEffect(() => {
@@ -735,7 +778,7 @@ const ChatLayout = () => {
                 <div className="sidebar-header">
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <h1 className="app-title">Messages</h1>
-                        {!isSocketConnected && (
+                        {!isConnected && (
                             <span style={{ fontSize: '12px', color: 'orange', fontWeight: '500' }}>Connecting...</span>
                         )}
                     </div>
@@ -808,12 +851,18 @@ const ChatLayout = () => {
                     <ChatWindow
                         chat={activeChat}
                         messages={messages}
-                        onSendMessage={handleSendMessage}
-                        onBack={() => window.history.back()}
                         currentUserId={user._id}
+                        onSendMessage={handleSendMessage}
+                        onBack={() => {
+                            window.history.back();
+                            setActiveChat(null);
+                        }}
                         onClearChat={handleClearChat}
                         onBlockUser={handleBlockUser}
                         onVisitProfile={handleVisitProfile}
+                        onLoadMore={loadMoreMessages}
+                        hasMore={hasMoreMessages}
+                        loadingMore={loadingMoreMessages}
                         isOnline={onlineUsers.has(activeChat.otherUserId)}
                         lastSeen={activeChat.lastSeen}
                     />
