@@ -176,9 +176,9 @@
         right: 0;
         z-index: 30;
         /* Above everything */
-        background: rgba(255, 255, 255, 0.9);
+        background: var(--color-white);
         backdrop-filter: blur(10px);
-        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
         transition: transform 0.3s ease;
         padding-bottom: env(safe-area-inset-bottom);
         /* Handle iPhone home bar */
@@ -193,6 +193,10 @@
     /* Hide bottom nav when in chat view */
     .chat-layout.mobile-view-chat .bottom-nav {
         transform: translateY(100%);
+    }
+
+    [data-theme='dark'] .bottom-nav {
+        border-top-color: rgba(255, 255, 255, 0.1);
     }
 }
 
