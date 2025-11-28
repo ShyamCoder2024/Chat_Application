@@ -167,7 +167,7 @@ router.put('/:chatId/read', async (req, res) => {
     try {
         await Chat.findByIdAndUpdate(req.params.chatId, {
             [`unreadCounts.${userId}`]: 0
-        });
+        }, { timestamps: false });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
