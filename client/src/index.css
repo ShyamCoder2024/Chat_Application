@@ -80,7 +80,18 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent accidental text selection on UI elements */
+button,
+.nav-item,
+.header-title,
+.chat-list-item {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Add smooth view transitions for theme toggle */

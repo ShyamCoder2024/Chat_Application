@@ -24,4 +24,4 @@ const MessageBubble = ({ message, isSent }) => {
     );
 };
 
-export default MessageBubble;
+export default React.memo(MessageBubble);
