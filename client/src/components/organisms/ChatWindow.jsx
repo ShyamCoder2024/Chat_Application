@@ -170,7 +170,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
 
         } catch (err) {
             console.error("Upload error:", err);
-            alert("Failed to upload image.");
+            alert(`Failed to upload image: ${err.message}`);
         } finally {
             setIsUploading(false);
         }
@@ -338,21 +338,41 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                         >
                             {isUploading ? <Loader className="spin" size={20} /> : <Paperclip size={20} />}
                         </Button>
-                        <Input
+                        <textarea
                             placeholder="Type a message..."
                             value={newMessage}
                             onChange={handleInputChange}
-                            className="message-input"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSend(e);
+                                }
+                            }}
+                            className="message-input textarea"
+                            rows={1}
+                            style={{ resize: 'none' }}
                         />
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            size="icon"
-                            className="send-btn"
-                            disabled={!newMessage.trim() && !isUploading}
-                        >
-                            {newMessage.trim() ? <Send size={20} /> : <div onClick={(e) => { e.preventDefault(); setIsRecording(true); }}> <Mic size={20} /> </div>}
-                        </Button>
+                        {newMessage.trim() ? (
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                size="icon"
+                                className="send-btn"
+                                disabled={isUploading}
+                            >
+                                <Send size={20} />
+                            </Button>
+                        ) : (
+                            <Button
+                                type="button"
+                                variant="primary"
+                                size="icon"
+                                className="mic-btn"
+                                onClick={() => setIsRecording(true)}
+                            >
+                                <Mic size={20} />
+                            </Button>
+                        )}
                     </form>
                 )}
             </div>
