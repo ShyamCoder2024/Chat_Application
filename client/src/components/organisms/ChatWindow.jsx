@@ -96,38 +96,14 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         };
     }, []);
 
-    // Mobile Keyboard & Viewport Handling
-    useEffect(() => {
-        if (!window.visualViewport) return;
-
-        const handleResize = () => {
-            // Check if keyboard likely opened (height reduced significantly)
-            // or if we just want to ensure visibility
-            if (virtuosoRef.current) {
-                // Force a check/scroll to bottom if input is focused
-                if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
-                    virtuosoRef.current.scrollToIndex({
-                        index: flattenedItems.length - 1,
-                        align: 'end',
-                        behavior: 'smooth'
-                    });
-                }
-            }
-        };
-
-        window.visualViewport.addEventListener('resize', handleResize);
-        window.visualViewport.addEventListener('scroll', handleResize); // Handle sticky headers/keyboards
-
-        return () => {
-            window.visualViewport.removeEventListener('resize', handleResize);
-            window.visualViewport.removeEventListener('scroll', handleResize);
-        };
-    }, [flattenedItems.length]);
 
     // Helper to process messages for display (decryption + date separators)
     // We need to pre-process this list for Virtuoso because Virtuoso takes a flat list count
     // OR we can pass the data directly.
     // Date separators inject extra items. Let's flatten the list with separators first.
+
+
+
 
     const [flattenedItems, setFlattenedItems] = useState([]);
     const [pendingUploads, setPendingUploads] = useState([]); // Local state for uploads in progress
@@ -202,6 +178,31 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         }
     }, [chat.id, flattenedItems.length === 0]); // Run when chat changes or we first get items
 
+
+    // Mobile Keyboard & Viewport Handling
+    useEffect(() => {
+        if (!window.visualViewport) return;
+
+        const handleResize = () => {
+            if (virtuosoRef.current) {
+                if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+                    virtuosoRef.current.scrollToIndex({
+                        index: flattenedItems.length - 1,
+                        align: 'end',
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        };
+
+        window.visualViewport.addEventListener('resize', handleResize);
+        window.visualViewport.addEventListener('scroll', handleResize);
+
+        return () => {
+            window.visualViewport.removeEventListener('resize', handleResize);
+            window.visualViewport.removeEventListener('scroll', handleResize);
+        };
+    }, [flattenedItems.length]);
 
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
