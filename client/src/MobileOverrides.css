@@ -76,18 +76,18 @@
         opacity: 1 !important;
     }
 
-    /* Force Messages Area Expansion - FIXED for Virtuoso */
+    /* Force Messages Area Expansion - NATIVE SCROLL */
     .messages-area {
         display: flex !important;
         flex-direction: column !important;
         flex: 1 !important;
         width: 100% !important;
-        overflow: hidden !important;
-        /* Virtuoso handles internal scroll */
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
         padding: 10px !important;
         background-color: transparent !important;
         min-height: 0 !important;
-        /* Crucial for flex nested scrolling */
     }
 
     /* Hide ALL scrollbars on mobile */

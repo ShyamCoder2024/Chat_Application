@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Send, Paperclip, Image as ImageIcon, Loader, Mic } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Send, Paperclip, Loader, Mic } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { useSound } from '../../context/SoundContext';
@@ -8,7 +8,6 @@ import MessageBubble from '../molecules/MessageBubble';
 import TypingIndicator from '../atoms/TypingIndicator';
 import ChatMenu from '../molecules/ChatMenu';
 import VoiceRecorder from '../molecules/VoiceRecorder';
-import Input from '../atoms/Input';
 import Button from '../atoms/Button';
 import { formatLastSeen, formatMessageDate } from '../../utils/dateUtils';
 import { encryptMessage, decryptMessage } from '../../utils/crypto';
@@ -16,12 +15,11 @@ import { API_URL } from '../../config';
 import { compressImage } from '../../utils/mediaUtils';
 import './ChatWindow.css';
 
-import { Virtuoso } from 'react-virtuoso';
-
 const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen, onLoadMore, hasMore, loadingMore }) => {
     const [newMessage, setNewMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const virtuosoRef = useRef(null); // Virtuoso ref
+    const messagesEndRef = useRef(null); // REF FOR SCROLL TO BOTTOM
+    const messagesContainerRef = useRef(null);
     const fileInputRef = useRef(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
@@ -29,20 +27,14 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const { socket } = useSocket();
     const { secretKey } = useAuth();
     const { playSound } = useSound();
-    const [viewportHeight, setViewportHeight] = useState('100%'); // Default to 100% (or dvh)
-    const isInitialLoad = useRef(true);
+    const [viewportHeight, setViewportHeight] = useState('100dvh');
 
-    // We don't need manual scroll refs anymore, Virtuoso handles it via initialTopMostItemIndex or followOutput
-
-    // Scroll behavior is now handled by Virtuoso's `followOutput` or `initialTopMostItemIndex`
-    // checks.
-
-    // Handle "Last Seen" logic... (keep existing useEffects)
-
-    // Reset initial load flag when chat changes
-    useEffect(() => {
-        isInitialLoad.current = true;
-    }, [chat.id]);
+    // SIMPLE SCROLL TO BOTTOM - MOST RELIABLE METHOD
+    const scrollToBottom = () => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+        }
+    };
 
     // Socket Typing Listeners
     useEffect(() => {
@@ -63,7 +55,6 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         socket.on('typing', handleTyping);
         socket.on('stop_typing', handleStopTyping);
 
-        // Mark messages as read when opening chat
         if (messages.length > 0) {
             const unreadMessages = messages.some(m => !m.read && m.senderId !== currentUserId);
             if (unreadMessages) {
@@ -91,35 +82,20 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         }
     };
 
-    // Cleanup typing timeout on unmount
-    // Cleanup typing timeout on unmount
     useEffect(() => {
         return () => {
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         };
     }, []);
 
-
-    // Helper to process messages for display (decryption + date separators)
-    // We need to pre-process this list for Virtuoso because Virtuoso takes a flat list count
-    // OR we can pass the data directly.
-    // Date separators inject extra items. Let's flatten the list with separators first.
-
-
-
-
-    const [flattenedItems, setFlattenedItems] = useState([]);
-    const [pendingUploads, setPendingUploads] = useState([]); // Local state for uploads in progress
+    // Process messages with decryption
+    const [processedMessages, setProcessedMessages] = useState([]);
+    const [pendingUploads, setPendingUploads] = useState([]);
 
     useEffect(() => {
-        const items = [];
-        let lastDate = null;
-
-        // 1. Process standard messages with Pre-Decryption
-        const processedMessages = messages.map(msg => {
-            // Decrypt once here if needed
+        const decrypted = messages.map(msg => {
             let content = msg.content;
-            if (msg.nonce && !msg.isPlaintext && !msg.isDecrypted) { // Add flag check to prevent re-decrypt
+            if (msg.nonce && !msg.isPlaintext && !msg.isDecrypted) {
                 try {
                     content = decryptMessage(msg.content, msg.nonce, null);
                 } catch (err) {
@@ -129,58 +105,34 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             return { ...msg, content, isDecrypted: true };
         });
 
-        // 2. Combine with Pending Uploads
-        // We want pending uploads at the bottom, but sorted by time ideally. 
-        // Since they are "new", they are usually at the end.
-        const allMessages = [...processedMessages, ...pendingUploads].sort((a, b) => {
-            const dateA = new Date(a.createdAt || a.time || Date.now()); // Handle various date formats
+        const allMessages = [...decrypted, ...pendingUploads].sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.time || Date.now());
             const dateB = new Date(b.createdAt || b.time || Date.now());
             return dateA - dateB;
         });
 
-        allMessages.forEach((msg, index) => {
-            const rawDate = msg.createdAt || (msg.isOptimistic ? new Date() : Date.now());
-            const msgDate = new Date(rawDate).toDateString();
-
-            if (msgDate !== lastDate) {
-                items.push({ type: 'separator', date: rawDate, id: `date-${index}-${msgDate}` });
-                lastDate = msgDate;
-            }
-
-            items.push({ type: 'message', data: msg, id: msg.id });
-        });
-        setFlattenedItems(items);
+        setProcessedMessages(allMessages);
     }, [messages, pendingUploads]);
 
-    // Force scroll to bottom when MY message is added (including optimistic ones)
-    // This is CRITICAL for mobile user experience
-    const forceScrollToBottom = React.useCallback(() => {
-        if (virtuosoRef.current && flattenedItems.length > 0) {
-            virtuosoRef.current.scrollToIndex({
-                index: flattenedItems.length - 1,
-                align: 'end',
-                behavior: 'auto'
-            });
-        }
-    }, [flattenedItems.length]);
-
-    // Initial Mount Scroll Logic - Ensure we start at bottom
+    // SCROLL TO BOTTOM ON INITIAL LOAD AND WHEN MESSAGES CHANGE
     useEffect(() => {
-        if (flattenedItems.length > 0) {
-            // Small delay to ensure Virtuoso has calculated sizes
-            const timer = setTimeout(forceScrollToBottom, 100);
-            return () => clearTimeout(timer);
-        }
-    }, [chat.id]); // Only on chat change
+        scrollToBottom();
+        // Multiple attempts for mobile reliability
+        setTimeout(scrollToBottom, 50);
+        setTimeout(scrollToBottom, 150);
+        setTimeout(scrollToBottom, 300);
+    }, [processedMessages.length, chat.id]);
 
-    // Mobile Keyboard & Viewport Handling - FIXED
+    // SCROLL TO BOTTOM ON KEYBOARD OPEN
     useEffect(() => {
         if (!window.visualViewport) return;
 
         const handleResize = () => {
             setViewportHeight(`${window.visualViewport.height}px`);
-            // ALWAYS force scroll to bottom when viewport changes (keyboard)
-            setTimeout(forceScrollToBottom, 100);
+            // ALWAYS scroll to bottom when keyboard opens
+            scrollToBottom();
+            setTimeout(scrollToBottom, 100);
+            setTimeout(scrollToBottom, 200);
         };
 
         setViewportHeight(`${window.visualViewport.height}px`);
@@ -192,32 +144,25 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             window.visualViewport.removeEventListener('resize', handleResize);
             window.visualViewport.removeEventListener('scroll', handleResize);
         };
-    }, [forceScrollToBottom]);
+    }, []);
 
-    // CRITICAL: Scroll to bottom EVERY TIME a new message is added (mine or theirs)
-    // This is the most important fix for mobile
-    const prevLengthRef = useRef(flattenedItems.length);
-    useEffect(() => {
-        if (flattenedItems.length > prevLengthRef.current) {
-            // New items added - scroll to bottom
-            forceScrollToBottom();
-            // Double-tap for reliability on mobile
-            setTimeout(forceScrollToBottom, 200);
-        }
-        prevLengthRef.current = flattenedItems.length;
-    }, [flattenedItems.length, forceScrollToBottom]);
+    // Input focus handler for additional scroll trigger
+    const handleInputFocus = () => {
+        setTimeout(scrollToBottom, 100);
+        setTimeout(scrollToBottom, 300);
+        setTimeout(scrollToBottom, 500);
+    };
 
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        e.target.value = ''; // Reset input
+        e.target.value = '';
 
         if (!file.type.startsWith('image/')) {
             alert("Only images are supported for now.");
             return;
         }
 
-        // 1. Immediate Optimistic UI
         const tempId = `pending-${Date.now()}`;
         const localUrl = URL.createObjectURL(file);
 
@@ -234,12 +179,11 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             isPlaintext: true
         };
 
-        // Optimistic UI for Image
         setPendingUploads(prev => [...prev, pendingMsg]);
         setIsUploading(true);
+        playSound('sent');
 
         try {
-            // 2. Compress & Upload
             const compressedFile = await compressImage(file);
             const formData = new FormData();
             formData.append('file', compressedFile);
@@ -252,21 +196,16 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             if (!res.ok) throw new Error('Upload failed');
             const data = await res.json();
 
-            // 3. Send Real Message (socket)
             onSendMessage('Photo', null, 'Photo', {
                 type: 'image',
                 mediaUrl: data.url
             });
 
-            // 4. Remove local pending item immediately - Parent will likely render the real message soon
-            // But to avoid flicker, we can wait a tick or just let it be handled by logic
             setPendingUploads(prev => prev.filter(m => m.id !== tempId));
 
         } catch (err) {
             console.error("Upload error:", err);
             alert(`Failed to upload image: ${err.message}`);
-            // Keep pending item but mark error? Or remove?
-            // For now, remove it to prevent "stuck" messages
             setPendingUploads(prev => prev.filter(m => m.id !== tempId));
         } finally {
             setIsUploading(false);
@@ -278,7 +217,6 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         const tempId = `pending-audio-${Date.now()}`;
         const localUrl = URL.createObjectURL(audioBlob);
 
-        // Optimistic Audio
         const pendingMsg = {
             id: tempId,
             content: 'Voice Message',
@@ -293,6 +231,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         };
         setPendingUploads(prev => [...prev, pendingMsg]);
         setIsUploading(true);
+        playSound('sent');
 
         try {
             const formData = new FormData();
@@ -329,10 +268,9 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             const tempId = `optimistic-${Date.now()}`;
             const messageText = newMessage;
 
-            // PLAY SEND SOUND IMMEDIATELY
+            // PLAY SOUND IMMEDIATELY
             playSound('sent');
 
-            // 1. Create Optimistic Message
             const optimisticMsg = {
                 id: tempId,
                 content: messageText,
@@ -342,22 +280,19 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 type: 'text',
                 status: 'sending',
                 isOptimistic: true,
-                isPlaintext: true // Flag to skip decryption
+                isPlaintext: true
             };
 
-            // 2. Add to Pending Uploads (treated as general pending items) to show immediately
             setPendingUploads(prev => [...prev, optimisticMsg]);
-            setNewMessage(''); // Clear input immediately
+            setNewMessage('');
 
-            // 3. FORCE SCROLL TO BOTTOM IMMEDIATELY after adding optimistic message
+            // SCROLL IMMEDIATELY AFTER ADDING MESSAGE
             requestAnimationFrame(() => {
-                forceScrollToBottom();
-                // Triple tap for mobile reliability
-                setTimeout(forceScrollToBottom, 50);
-                setTimeout(forceScrollToBottom, 150);
+                scrollToBottom();
+                setTimeout(scrollToBottom, 50);
+                setTimeout(scrollToBottom, 150);
             });
 
-            // 4. Process Encryption & Send in Background
             setTimeout(() => {
                 let messageToSend = messageText;
                 let nonce = null;
@@ -368,8 +303,6 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     nonce = encrypted.nonce;
 
                     onSendMessage(messageToSend, nonce, messageText, { type: 'text' });
-
-                    // Remove optimistic once sent (real message comes back via props)
                     setPendingUploads(prev => prev.filter(m => m.id !== tempId));
 
                     if (socket) {
@@ -384,37 +317,37 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         }
     };
 
-    const renderItem = (index, item) => {
-        if (item.type === 'separator') {
-            return (
-                <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center', opacity: 0.8 }}>
-                    <span className="date-separator-span" style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                        padding: '6px 16px',
-                        borderRadius: '9999px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        color: 'var(--text-secondary)'
-                    }}>
-                        {formatMessageDate(item.date)}
-                    </span>
-                </div>
-            );
-        }
+    // Group messages by date for separators
+    const renderMessages = () => {
+        let lastDate = null;
+        const elements = [];
 
-        // Render the pre-processed message (already decrypted)
-        return (
-            <MessageBubble
-                key={item.id}
-                message={item.data}
-                isSent={item.data.senderId === currentUserId}
-            />
-        );
+        processedMessages.forEach((msg, index) => {
+            const msgDate = new Date(msg.createdAt || Date.now()).toDateString();
+
+            if (msgDate !== lastDate) {
+                elements.push(
+                    <div key={`sep-${index}`} className="date-separator">
+                        <span>{formatMessageDate(msg.createdAt || new Date())}</span>
+                    </div>
+                );
+                lastDate = msgDate;
+            }
+
+            elements.push(
+                <MessageBubble
+                    key={msg.id}
+                    message={msg}
+                    isSent={msg.senderId === currentUserId}
+                />
+            );
+        });
+
+        return elements;
     };
 
     return (
         <div className="chat-window" style={{ height: viewportHeight }}>
-            {/* Header */}
             <Header
                 title={chat.name}
                 subtitle={
@@ -433,44 +366,34 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 }
             />
 
-            <div className="messages-area" style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: 0 }}>
-                {/* Retention Notice - Static at top or part of list? Better as part of list header */}
+            {/* SIMPLE SCROLLABLE MESSAGE LIST - NO VIRTUOSO */}
+            <div
+                ref={messagesContainerRef}
+                className="messages-area messages-scroll-container"
+            >
+                <div className="retention-notice">
+                    <p>Messages are end-to-end encrypted 🔒 and auto-delete after 24 hours.</p>
+                </div>
 
-                <Virtuoso
-                    ref={virtuosoRef}
-                    style={{ height: '100%', width: '100%' }}
-                    data={flattenedItems}
-                    itemContent={renderItem}
-                    initialTopMostItemIndex={flattenedItems.length - 1}
-                    // ALWAYS follow new output - critical for mobile
-                    followOutput={() => 'auto'}
-                    startReached={hasMore ? onLoadMore : undefined}
-                    components={{
-                        Header: () => (
-                            <div style={{ padding: '12px' }}>
-                                {loadingMore && (
-                                    <div style={{ textAlign: 'center', padding: '8px', color: '#888', fontSize: '12px' }}>
-                                        Loading older messages...
-                                    </div>
-                                )}
-                                <div className="retention-notice">
-                                    <p>Messages are end-to-end encrypted 🔒 and auto-delete after 24 hours.</p>
-                                </div>
-                            </div>
-                        ),
-                        Footer: () => <div style={{ height: '10px' }}></div>
-                    }}
-                />
+                {loadingMore && (
+                    <div style={{ textAlign: 'center', padding: '10px', color: '#888', fontSize: '12px' }}>
+                        Loading older messages...
+                    </div>
+                )}
+
+                {renderMessages()}
 
                 {isTyping && (
-                    <div style={{ padding: '0 20px 10px 20px' }}>
+                    <div style={{ padding: '0 10px 10px 10px' }}>
                         <TypingIndicator />
                     </div>
                 )}
+
+                {/* INVISIBLE ELEMENT TO SCROLL TO */}
+                <div ref={messagesEndRef} style={{ height: '1px' }} />
             </div>
 
             <div className="input-area">
-                {/* ... (existing Input Area code) */}
                 {isRecording ? (
                     <VoiceRecorder
                         onSend={handleAudioSend}
@@ -499,6 +422,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                             placeholder="Type a message..."
                             value={newMessage}
                             onChange={handleInputChange}
+                            onFocus={handleInputFocus}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
