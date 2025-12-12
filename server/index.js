@@ -97,6 +97,7 @@ io.on('connection', (socket) => {
 
   socket.on('send_message', async (data) => {
     try {
+      console.log("Server received send_message:", data);
       if (!data.content || !data.chatId || !data.senderId) {
         console.error('Invalid message data:', data);
         return;

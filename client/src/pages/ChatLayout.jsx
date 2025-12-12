@@ -252,8 +252,9 @@ const ChatLayout = () => {
                                     time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                     status: msg.status,
                                     isPlaintext: true, // Keep it marked as plaintext
-                                    type: message.type || 'text',
-                                    mediaUrl: message.mediaUrl
+                                    // Robustness: If server lost valid type, keep our optimistic type
+                                    type: (message.type && message.type !== 'text') ? message.type : (msg.type || 'text'),
+                                    mediaUrl: message.mediaUrl || msg.mediaUrl
                                 }
                                 : msg
                         );
@@ -472,6 +473,7 @@ const ChatLayout = () => {
     }, [activeChat, socket, user._id]);
 
     const handleSendMessage = React.useCallback((content, nonce = null, plaintext = null, metadata = {}) => {
+        console.log("handleSendMessage called with:", { content, nonce, plaintext, metadata });
         if (!socket || !activeChat) return;
 
         playSound('sent'); // Play sent sound
