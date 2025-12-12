@@ -12,6 +12,7 @@ import Button from '../atoms/Button';
 import { formatLastSeen, formatMessageDate } from '../../utils/dateUtils';
 import { encryptMessage, decryptMessage } from '../../utils/crypto';
 import { API_URL } from '../../config';
+import { compressImage } from '../../utils/mediaUtils';
 import './ChatWindow.css';
 
 const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen, onLoadMore, hasMore, loadingMore }) => {
@@ -136,11 +137,15 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         }
     };
 
+    // ... (existing imports)
+
+    // ... (existing imports)
+
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Reset input to allow selecting the same file again
+        // Reset input
         e.target.value = '';
 
         if (!file.type.startsWith('image/')) {
@@ -148,10 +153,75 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             return;
         }
 
+        // 1. Optimistic UI: Show immediately
+        const tempId = Date.now();
+        const localUrl = URL.createObjectURL(file);
+
+        // Add temporary message to UI
+        const optimisticMessage = {
+            id: tempId,
+            content: 'Photo',
+            senderId: currentUserId,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: 'image',
+            mediaUrl: localUrl,
+            status: 'sending',
+            isOptimistic: true // Flag to identify and replace later
+        };
+
+        // Update local state immediately
+        // We pass a function to setMessages to safely append
+        // Note: The parent component manages messages, but we can't easily update its state directly 
+        // without a prop function for "addOptimisticMessage". 
+        // However, looking at the code, onSendMessage sends to socket. 
+        // We will call onSendMessage with a special flag or handle it locally if possible.
+        // Actually, the best pattern here without refactoring the parent (ChatLayout) too much 
+        // is to let the upload finish, BUT for "smoothness" we really want to show it now.
+        // 
+        // Since ChatWindow receives `messages` as a prop, we can't mutate it directly.
+        // BUT, ChatLayout has `handleSendMessage` which does optimistic updates for TEXT.
+        // We should leverage that or specific logic.
+        //
+        // Let's look at `onSendMessage` signature in ChatLayout: 
+        // handleSendMessage(content, nonce, plaintext, metadata)
+        // It ALREADY does optimistic updates! 
+        // So we just need to pass the LOCAL URL in metadata first? 
+        // No, `onSendMessage` sends to socket immediately. We don't want to send the local blob URL to socket.
+
+        // REVISED STRATEGY: 
+        // We will maintain a `localUploadingMessages` state in ChatWindow to show *pending* uploads
+        // overlaid on the messages list, OR we just block-UI (less smooth).
+        // OR better: We simply upload FAST (compression) and assume the user accepts a small delay.
+        // 
+        // WAIT, the user explicitly asked for "smoother experience".
+        // The best way is:
+        // 1. Compress (Fast)
+        // 2. Upload
+        // 3. Send
+        // 
+        // If we want TRUE optimistic (WhatsApp style), we need to modify ChatLayout to handle "pending uploads".
+        // Given constraints, I will use `compressImage` to speed it up significantly, 
+        // and add a "Sending..." toast or indicator if I can't easily touch ChatLayout state deeply.
+
+        // ACTUALLY, I can modify `onSendMessage` in ChatWindow to be smarter? No, it calls prop.
+
+        // Let's stick to the plan: Client-side compression drastically reduces upload time (e.g. 5MB -> 300KB).
+        // This alone makes it feel much faster. 
+        // Combined with `setIsUploading(true)` which shows a loader button.
+
+        // Let's try to pass the local preview to `onSendMessage`? 
+        // If I pass the local URL, the socket will broadcast it to others who CANNOT see it. Bad.
+
+        // OK, I will implement **Compression** first as it's the biggest win. 
+        // And I will optimize the "Loading" state to be less obtrusive.
+
         setIsUploading(true);
         try {
+            // Compress!
+            const compressedFile = await compressImage(file);
+
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', compressedFile);
 
             const res = await fetch(`${API_URL}/api/upload`, {
                 method: 'POST',
@@ -166,8 +236,6 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             const data = await res.json();
             console.log("Image upload response:", data);
 
-            // Send message with media
-            // Ensure we use the full URL or relative path correctly
             onSendMessage('Photo', null, 'Photo', {
                 type: 'image',
                 mediaUrl: data.url
@@ -183,10 +251,13 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
 
     const handleAudioSend = async (audioBlob) => {
         setIsRecording(false);
+        // Show lightweight loading state
+        // setIsUploading(true); // Don't block the UI with a global loader for audio, maybe? 
+        // Actually, preventing spam is good.
         setIsUploading(true);
+
         try {
             const formData = new FormData();
-            // Ensure blob has correct type and a filename
             const blob = new Blob([audioBlob], { type: 'audio/webm' });
             formData.append('file', blob, 'voice_message.webm');
 

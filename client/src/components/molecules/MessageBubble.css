@@ -161,12 +161,15 @@
 
 @media (max-width: 768px) {
     .audio-bubble {
-        min-width: 180px;
+        min-width: 140px;
+        /* Allow shrinking */
+        padding: 6px 10px !important;
     }
 
     .message-audio-container {
-        min-width: 150px;
-        max-width: 220px;
+        min-width: 140px;
+        max-width: 200px;
+        /* Use more width on mobile */
     }
 
     .voice-message-player {
