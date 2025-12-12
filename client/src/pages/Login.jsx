@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Input from '../components/atoms/Input';
 import Button from '../components/atoms/Button';
 import AvatarSelector from '../components/molecules/AvatarSelector';
-import ThreeBackground from '../components/atoms/ThreeBackground';
+// import ThreeBackground from '../components/atoms/ThreeBackground'; // Lazy load this
 import { API_URL } from '../config';
 import './Login.css';
+
+const ThreeBackground = lazy(() => import('../components/atoms/ThreeBackground'));
 
 const Login = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -160,7 +162,9 @@ const Login = () => {
     // RENDER:
     return (
         <div className="login-page">
-            <ThreeBackground />
+            <Suspense fallback={<div className="three-background-placeholder" />}>
+                <ThreeBackground />
+            </Suspense>
             <div className="login-left">
                 <div className="login-card animate-pop-in">
                     <div className="login-header">
