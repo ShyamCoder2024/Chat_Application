@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Avatar from '../atoms/Avatar';
 import Input from '../atoms/Input';
 import Button from '../atoms/Button';
@@ -29,7 +29,8 @@ const ProfileSection = ({ user, onSave, onLogout, onBack, onResetKeys }) => {
         }
     }, [user, isEditing]);
 
-    const fetchBlockedUsers = async () => {
+    const fetchBlockedUsers = useCallback(async () => {
+        if (!user?._id) return;
         try {
             const res = await fetch(`${API_URL}/api/auth/blocked/${user._id}`);
             if (res.ok) {
@@ -39,7 +40,11 @@ const ProfileSection = ({ user, onSave, onLogout, onBack, onResetKeys }) => {
         } catch (err) {
             console.error("Failed to fetch blocked users", err);
         }
-    };
+    }, [user?._id]);
+
+    useEffect(() => {
+        fetchBlockedUsers();
+    }, [fetchBlockedUsers]);
 
     const handleUnblock = async (blockUserId) => {
         try {
