@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Input from '../components/atoms/Input';
 import Button from '../components/atoms/Button';
 import AvatarSelector from '../components/molecules/AvatarSelector';
+import ThreeBackground from '../components/atoms/ThreeBackground';
 import './Login.css';
 
 const Login = () => {
@@ -92,6 +93,7 @@ const Login = () => {
 
     return (
         <div className="login-page">
+            <ThreeBackground />
             <div className="login-left">
                 <div className="login-card animate-pop-in">
                     <div className="login-header">
