@@ -145,21 +145,9 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     }, [messages, pendingUploads]);
 
     // Force scroll to bottom when MY message is added (including optimistic ones)
+    // REMOVED: Managed by Virtuoso followOutput now
     useEffect(() => {
-        if (flattenedItems.length > 0) {
-            const lastItem = flattenedItems[flattenedItems.length - 1];
-            // If the last message is from ME, scroll to it.
-            if (lastItem.type === 'message' && lastItem.data.senderId === currentUserId) {
-                // Use setTimeout to ensure the render cycle is complete and height is calculated
-                setTimeout(() => {
-                    virtuosoRef.current?.scrollToIndex({
-                        index: flattenedItems.length - 1,
-                        align: 'end',
-                        behavior: 'smooth'
-                    });
-                }, 50);
-            }
-        }
+        // Just keeping the dependency here to force re-evaluation of scroll strategy if needed
     }, [flattenedItems, currentUserId]);
 
     // Initial Mount Scroll Logic - Ensure we start at bottom
@@ -374,7 +362,15 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     data={flattenedItems}
                     itemContent={renderItem}
                     initialTopMostItemIndex={flattenedItems.length - 1} // Start at bottom
-                    followOutput={'auto'} // Auto scroll to bottom when new messages arrive
+                    followOutput={(isAtBottom) => {
+                        const lastItem = flattenedItems[flattenedItems.length - 1];
+                        // Always scroll to bottom if I just sent a message
+                        if (lastItem && lastItem.type === 'message' && lastItem.data.senderId === currentUserId) {
+                            return 'smooth';
+                        }
+                        // Otherwise, only auto-scroll if user was already at the bottom
+                        return isAtBottom ? 'auto' : false;
+                    }}
                     startReached={hasMore ? onLoadMore : undefined}
                     components={{
                         Header: () => (
