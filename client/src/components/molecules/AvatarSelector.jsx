@@ -8,7 +8,14 @@ const AVATAR_SEEDS = [
     'Charlie', 'Lucy', 'Coco', 'Ruby', 'Luna',
     'Jack', 'Ginger', 'Lola', 'Sasha', 'Sam',
     'Misty', 'Simba', 'Rocky', 'Jasper', 'Tigger',
-    'Shadow', 'Willow', 'Peanut', 'Kiki', 'Oreo'
+    'Shadow', 'Willow', 'Peanut', 'Kiki', 'Oreo',
+    // New additions (Female & Diverse)
+    'Sophie', 'Emma', 'Maya', 'Lily', 'Chloe',
+    'Mia', 'Ava', 'Grace', 'Harper', 'Aria',
+    'Ellie', 'Nora', 'Hazel', 'Violet', 'Aurora',
+    'Penny', 'Mila', 'Layla', 'Riley', 'Zoey',
+    'Stella', 'Willow', 'Piper', 'Ruby', 'Serenity',
+    'Autumn', 'Quinn', 'Eliana', 'Sadie', 'Delilah'
 ];
 
 const AvatarSelector = ({ selectedAvatar, onSelect }) => {
