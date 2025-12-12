@@ -1,5 +1,11 @@
-/* Mobile Overrides - The "Nuclear Option" to fix blank screen */
+/* EXTREME MOBILE OPTIMIZATIONS - Native App Feel */
 @media (max-width: 768px) {
+
+    /* GPU Acceleration for ALL mobile elements */
+    * {
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+    }
 
     html,
     body,
@@ -10,6 +16,8 @@
         margin: 0 !important;
         padding: 0 !important;
         background-color: var(--color-cream) !important;
+        -webkit-font-smoothing: antialiased !important;
+        -moz-osx-font-smoothing: grayscale !important;
     }
 
     /* Force Layout Container */
@@ -21,7 +29,6 @@
         bottom: 0 !important;
         width: 100% !important;
         height: 100dvh !important;
-        /* Use dynamic viewport height */
         display: flex !important;
         flex-direction: column !important;
         background-color: var(--color-cream) !important;
@@ -40,14 +47,13 @@
         display: flex !important;
         flex-direction: column !important;
         z-index: 999 !important;
-        /* Super high z-index */
-        transform: none !important;
+        transform: translateZ(0) !important;
         opacity: 1 !important;
         visibility: visible !important;
         background-color: var(--color-cream) !important;
     }
 
-    /* Force Chat Window Expansion */
+    /* Force Chat Window Expansion with GPU */
     .chat-window {
         display: flex !important;
         flex-direction: column !important;
@@ -57,26 +63,25 @@
         overflow: hidden !important;
         position: relative !important;
         background-color: var(--color-cream) !important;
+        transform: translateZ(0) !important;
     }
 
-    /* Force Header Visibility */
+    /* Force Header - Minimal and Fast */
     .app-header {
         display: flex !important;
-        height: 60px !important;
-        /* Slightly smaller on mobile */
-        min-height: 60px !important;
+        height: 56px !important;
+        min-height: 56px !important;
         flex-shrink: 0 !important;
         width: 100% !important;
         background-color: var(--color-white) !important;
         z-index: 1000 !important;
         position: relative !important;
-        /* Stick to top of flex column */
         border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
         visibility: visible !important;
         opacity: 1 !important;
     }
 
-    /* Force Messages Area Expansion - NATIVE SCROLL */
+    /* Messages Area - Silky Smooth Scroll */
     .messages-area {
         display: flex !important;
         flex-direction: column !important;
@@ -85,12 +90,14 @@
         overflow-y: auto !important;
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch !important;
-        padding: 10px !important;
+        overscroll-behavior-y: contain !important;
+        padding: 8px !important;
         background-color: transparent !important;
         min-height: 0 !important;
+        transform: translateZ(0) !important;
     }
 
-    /* Hide ALL scrollbars on mobile */
+    /* HIDE ALL scrollbars */
     *::-webkit-scrollbar {
         display: none !important;
         width: 0 !important;
@@ -102,7 +109,7 @@
         scrollbar-width: none !important;
     }
 
-    /* Force Input Area Visibility */
+    /* Input Area - Sticky Bottom */
     .input-area {
         display: block !important;
         flex-shrink: 0 !important;
@@ -110,7 +117,7 @@
         background-color: var(--color-white) !important;
         z-index: 1000 !important;
         position: relative !important;
-        padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+        padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
         visibility: visible !important;
         opacity: 1 !important;
     }
@@ -118,5 +125,85 @@
     /* Hide Sidebar in Chat View */
     .chat-layout.mobile-view-chat .sidebar {
         display: none !important;
+    }
+
+    /* INSTANT TOUCH FEEDBACK */
+    .chat-list-item,
+    .message-bubble,
+    button,
+    .btn {
+        transition: transform 0.1s ease, background-color 0.1s ease !important;
+    }
+
+    .chat-list-item:active,
+    button:active,
+    .btn:active {
+        transform: scale(0.98) !important;
+        opacity: 0.9 !important;
+    }
+
+    /* Message Bubble Animations */
+    .message-wrapper {
+        animation: messageFadeIn 0.15s ease-out !important;
+    }
+
+    @keyframes messageFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Chat List Item Tap Effect */
+    .chat-list-item {
+        position: relative !important;
+        overflow: hidden !important;
+    }
+
+    .chat-list-item::after {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: rgba(0, 0, 0, 0.03) !important;
+        opacity: 0 !important;
+        transition: opacity 0.15s ease !important;
+        pointer-events: none !important;
+    }
+
+    .chat-list-item:active::after {
+        opacity: 1 !important;
+    }
+
+    /* Optimized Message Bubbles */
+    .message-bubble {
+        contain: layout style !important;
+        will-change: transform !important;
+    }
+
+    /* Fast Image Loading */
+    .message-image,
+    img {
+        contain: layout !important;
+        content-visibility: auto !important;
+    }
+
+    /* Reduce motion for performance */
+    @media (prefers-reduced-motion: reduce) {
+
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
     }
 }
