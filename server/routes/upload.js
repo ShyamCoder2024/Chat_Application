@@ -24,7 +24,12 @@ const storage = multer.diskStorage({
 // File filter
 const fileFilter = (req, file, cb) => {
     // Accept images and audio
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('audio/')) {
+    const allowedMimeTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'audio/webm', 'audio/ogg', 'audio/wav', 'audio/mpeg', 'audio/mp4'
+    ];
+
+    if (allowedMimeTypes.includes(file.mimetype) || file.mimetype.startsWith('image/') || file.mimetype.startsWith('audio/')) {
         cb(null, true);
     } else {
         cb(new Error('Invalid file type. Only images and audio are allowed.'), false);

@@ -44,11 +44,18 @@ const VoiceRecorder = ({ onSend, onCancel }) => {
     };
 
     const stopRecordingContext = () => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            mediaRecorderRef.current.stop();
-            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        if (mediaRecorderRef.current) {
+            if (mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+            }
+            if (mediaRecorderRef.current.stream) {
+                mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+            }
         }
-        if (timerRef.current) clearInterval(timerRef.current);
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
     };
 
     const handleSend = () => {

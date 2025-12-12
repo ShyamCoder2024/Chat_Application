@@ -29,6 +29,7 @@ const MessageBubble = ({ message, isSent }) => {
                                 alt="Shared photo"
                                 className="message-image"
                                 loading="lazy"
+                                style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', cursor: 'pointer' }}
                                 onClick={() => window.open(mediaUrl, '_blank')}
                                 onError={(e) => { e.target.style.display = 'none'; console.error('Image load error:', mediaUrl); }}
                             />
@@ -37,10 +38,12 @@ const MessageBubble = ({ message, isSent }) => {
                         <div className="message-audio-container">
                             <audio
                                 controls
-                                src={mediaUrl}
                                 className="voice-message-player"
                                 onError={(e) => console.error('Audio load error:', mediaUrl)}
                             >
+                                <source src={mediaUrl} type="audio/webm" />
+                                <source src={mediaUrl} type="audio/mp4" />
+                                <source src={mediaUrl} type="audio/mpeg" />
                                 Your browser does not support audio.
                             </audio>
                         </div>

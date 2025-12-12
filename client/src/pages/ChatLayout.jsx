@@ -38,6 +38,13 @@ const ChatLayout = () => {
 
     const [isChatsLoading, setIsChatsLoading] = useState(true);
 
+    // Request Notification Permission on mount
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission !== 'granted') {
+            Notification.requestPermission();
+        }
+    }, []);
+
     // Fetch Chats
     useEffect(() => {
         if (view === 'chats') {
@@ -350,6 +357,34 @@ const ChatLayout = () => {
 
             // Notify server that message is delivered
             socket.emit('message_delivered', { messageId: message._id, userId: user._id });
+
+            // Trigger System Notification if app is in background or not in this chat
+            if (document.hidden || !currentActiveChat || currentActiveChat.id !== message.chatId) {
+                if (Notification.permission === 'granted' && message.senderId !== user._id) { // Don't notify for own messages
+                    let notifContent = 'New Message';
+                    if (message.type === 'image') notifContent = '📷 Photo';
+                    else if (message.type === 'audio') notifContent = '🎤 Voice Message';
+                    else if (message.nonce) {
+                        try {
+                            notifContent = decryptMessage(message.content, message.nonce, null);
+                        } catch (e) {
+                            notifContent = 'New Secure Message';
+                        }
+                    } else if (message.content) {
+                        notifContent = message.content;
+                    }
+
+                    const notification = new Notification('New Message', {
+                        body: notifContent,
+                        icon: '/favicon.ico' // Ensure this path exists or remove
+                    });
+
+                    notification.onclick = () => {
+                        window.focus();
+                        // Ideally navigate to the chat here
+                    };
+                }
+            }
         });
 
         return () => socket.off('receive_message');
@@ -494,7 +529,8 @@ const ChatLayout = () => {
             isOptimistic: true,
             isPlaintext: true, // Flag to tell ChatWindow NOT to decrypt this
             type: msgType,
-            mediaUrl: msgMediaUrl
+            mediaUrl: msgMediaUrl,
+            status: 'sent' // Default to sent
         };
 
         setMessages(prev => [...prev, optimisticMessage]);

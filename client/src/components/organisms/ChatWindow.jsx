@@ -182,7 +182,9 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         setIsUploading(true);
         try {
             const formData = new FormData();
-            formData.append('file', audioBlob, 'voice-message.webm');
+            // Ensure blob has correct type
+            const blob = new Blob([audioBlob], { type: 'audio/webm' });
+            formData.append('file', blob, 'voice-message.webm');
 
             const res = await fetch(`${API_URL}/api/upload`, {
                 method: 'POST',
