@@ -7,8 +7,18 @@ const MessageBubble = ({ message, isSent }) => {
     // Construct full URL for media, handling null/undefined
     const getMediaUrl = () => {
         if (!message.mediaUrl) return null;
-        if (message.mediaUrl.startsWith('http')) return message.mediaUrl;
-        return `${API_URL}${message.mediaUrl}`;
+        try {
+            // Check if it's already a full URL
+            if (message.mediaUrl.startsWith('http://') || message.mediaUrl.startsWith('https://')) {
+                return message.mediaUrl;
+            }
+            // Handle valid relative paths
+            const cleanPath = message.mediaUrl.startsWith('/') ? message.mediaUrl : `/${message.mediaUrl}`;
+            return `${API_URL}${cleanPath}`;
+        } catch (e) {
+            console.error("Error constructing media URL:", e);
+            return null;
+        }
     };
 
     const mediaUrl = getMediaUrl();

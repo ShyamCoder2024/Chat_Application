@@ -51,8 +51,8 @@ router.post('/', upload.single('file'), (req, res) => {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // Return the file URL (assuming server serves static files from /uploads)
-        // Adjust port/domain as needed, or just return relative path
+        // Return the file URL (relative path from root, e.g., /uploads/filename.ext)
+        // Ensure forward slashes for URLs even on Windows
         const fileUrl = `/uploads/${req.file.filename}`;
 
         res.json({

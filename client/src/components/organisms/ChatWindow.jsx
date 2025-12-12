@@ -140,7 +140,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         const file = e.target.files[0];
         if (!file) return;
 
-        // Reset input
+        // Reset input to allow selecting the same file again
         e.target.value = '';
 
         if (!file.type.startsWith('image/')) {
@@ -158,12 +158,16 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 body: formData
             });
 
-            if (!res.ok) throw new Error('Upload failed');
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Upload failed');
+            }
 
             const data = await res.json();
             console.log("Image upload response:", data);
 
             // Send message with media
+            // Ensure we use the full URL or relative path correctly
             onSendMessage('Photo', null, 'Photo', {
                 type: 'image',
                 mediaUrl: data.url
@@ -182,16 +186,19 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         setIsUploading(true);
         try {
             const formData = new FormData();
-            // Ensure blob has correct type
+            // Ensure blob has correct type and a filename
             const blob = new Blob([audioBlob], { type: 'audio/webm' });
-            formData.append('file', blob, 'voice-message.webm');
+            formData.append('file', blob, 'voice_message.webm');
 
             const res = await fetch(`${API_URL}/api/upload`, {
                 method: 'POST',
                 body: formData
             });
 
-            if (!res.ok) throw new Error('Upload failed');
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Upload failed');
+            }
 
             const data = await res.json();
             console.log("Audio upload response:", data);
@@ -203,7 +210,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
 
         } catch (err) {
             console.error("Audio upload error:", err);
-            alert("Failed to send voice message.");
+            alert(`Failed to send voice message: ${err.message}`);
         } finally {
             setIsUploading(false);
         }
