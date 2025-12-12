@@ -27,6 +27,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const typingTimeoutRef = useRef(null);
     const { socket } = useSocket();
     const { secretKey } = useAuth();
+    const [viewportHeight, setViewportHeight] = useState('100%'); // Default to 100% (or dvh)
     const isInitialLoad = useRef(true);
 
     // We don't need manual scroll refs anymore, Virtuoso handles it via initialTopMostItemIndex or followOutput
@@ -179,11 +180,15 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     }, [chat.id, flattenedItems.length === 0]); // Run when chat changes or we first get items
 
 
-    // Mobile Keyboard & Viewport Handling - URGENT FIX
+    // Mobile Keyboard & Viewport Handling - URGENT FIX (Layout Method)
     useEffect(() => {
         if (!window.visualViewport) return;
 
         const handleResize = () => {
+            // Updated: Set explicit height to match visual viewport
+            // This forces the container to shrinking when keyboard opens
+            setViewportHeight(`${window.visualViewport.height}px`);
+
             if (virtuosoRef.current) {
                 if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
                     // Use 'auto' for instant jump to avoid keyboard covering input
@@ -192,25 +197,12 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                         align: 'end',
                         behavior: 'auto'
                     });
-
-                    // Safety retry for slower devices
-                    setTimeout(() => {
-                        virtuosoRef.current?.scrollToIndex({
-                            index: flattenedItems.length - 1,
-                            align: 'end',
-                            behavior: 'auto'
-                        });
-                    }, 50);
-                    setTimeout(() => {
-                        virtuosoRef.current?.scrollToIndex({
-                            index: flattenedItems.length - 1,
-                            align: 'end',
-                            behavior: 'auto'
-                        });
-                    }, 150);
                 }
             }
         };
+
+        // Initialize height
+        setViewportHeight(`${window.visualViewport.height}px`);
 
         window.visualViewport.addEventListener('resize', handleResize);
         window.visualViewport.addEventListener('scroll', handleResize);
@@ -442,7 +434,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     };
 
     return (
-        <div className="chat-window">
+        <div className="chat-window" style={{ height: viewportHeight }}>
             {/* Header */}
             <Header
                 title={chat.name}

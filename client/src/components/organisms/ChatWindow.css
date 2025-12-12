@@ -6,7 +6,7 @@
     width: 100%;
     /* Ensure full width */
     height: 100%;
-    /* Fallback */
+    /* Ensure this takes full height of parent (which is now resized by JS) */
     background-color: var(--color-cream);
     background-image: radial-gradient(var(--color-sage) 1px, transparent 1px);
     background-size: 20px 20px;
