@@ -179,18 +179,35 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     }, [chat.id, flattenedItems.length === 0]); // Run when chat changes or we first get items
 
 
-    // Mobile Keyboard & Viewport Handling
+    // Mobile Keyboard & Viewport Handling - URGENT FIX
     useEffect(() => {
         if (!window.visualViewport) return;
 
         const handleResize = () => {
             if (virtuosoRef.current) {
                 if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+                    // Use 'auto' for instant jump to avoid keyboard covering input
                     virtuosoRef.current.scrollToIndex({
                         index: flattenedItems.length - 1,
                         align: 'end',
-                        behavior: 'smooth'
+                        behavior: 'auto'
                     });
+
+                    // Safety retry for slower devices
+                    setTimeout(() => {
+                        virtuosoRef.current?.scrollToIndex({
+                            index: flattenedItems.length - 1,
+                            align: 'end',
+                            behavior: 'auto'
+                        });
+                    }, 50);
+                    setTimeout(() => {
+                        virtuosoRef.current?.scrollToIndex({
+                            index: flattenedItems.length - 1,
+                            align: 'end',
+                            behavior: 'auto'
+                        });
+                    }, 150);
                 }
             }
         };
@@ -202,7 +219,33 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             window.visualViewport.removeEventListener('resize', handleResize);
             window.visualViewport.removeEventListener('scroll', handleResize);
         };
-    }, [flattenedItems.length]);
+    }, [flattenedItems.length]); // Re-bind when items change to ensure latest count
+
+    // Aggressive Auto-Scroll for New Messages (Self & Optimistic)
+    useEffect(() => {
+        const lastItem = flattenedItems[flattenedItems.length - 1];
+        if (!lastItem) return;
+
+        // If I just sent a message (or uploading), FORCE SCROLL DOWN INSTANTLY
+        if ((lastItem.type === 'message' && lastItem.data.senderId === currentUserId) ||
+            (lastItem.data && lastItem.data.isOptimistic)) {
+
+            virtuosoRef.current?.scrollToIndex({
+                index: flattenedItems.length - 1,
+                align: 'end',
+                behavior: 'auto' // Instant feedback is better than smooth here
+            });
+
+            // Double tap for safety
+            setTimeout(() => {
+                virtuosoRef.current?.scrollToIndex({
+                    index: flattenedItems.length - 1,
+                    align: 'end',
+                    behavior: 'smooth' // Smooth correct after instant jump
+                });
+            }, 100);
+        }
+    }, [flattenedItems.length, currentUserId]);
 
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
@@ -401,22 +444,10 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     style={{ height: '100%', width: '100%' }}
                     data={flattenedItems}
                     itemContent={renderItem}
-                    initialTopMostItemIndex={flattenedItems.length - 1}
+                    initialTopMostItemIndex={flattenedItems.length - 1} // Start at bottom
+                    // Simpler followOutput: Only auto-scroll for others if already at bottom
                     followOutput={(isAtBottom) => {
-                        const lastItem = flattenedItems[flattenedItems.length - 1];
-
-                        // 1. If I just sent a message, SCROLL.
-                        if (lastItem && lastItem.type === 'message' && lastItem.data.senderId === currentUserId) {
-                            return 'smooth';
-                        }
-
-                        // 2. If we are currently at the bottom (or close to it) and a new message comes, SCROLL.
-                        if (isAtBottom) {
-                            return 'smooth';
-                        }
-
-                        // Otherwise (user scrolled up), don't disturb them.
-                        return false;
+                        return isAtBottom ? 'smooth' : false;
                     }}
                     startReached={hasMore ? onLoadMore : undefined}
                     components={{
@@ -432,7 +463,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                                 </div>
                             </div>
                         ),
-                        Footer: () => <div style={{ height: '40px' }}></div> // Extra spacing for ease of viewing last msg
+                        Footer: () => <div style={{ height: '40px' }}></div>
                     }}
                 />
 
