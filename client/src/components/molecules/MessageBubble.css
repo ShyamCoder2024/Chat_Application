@@ -28,6 +28,23 @@
     max-width: 100%;
 }
 
+@media (max-width: 768px) {
+    .message-bubble-container {
+        max-width: 85%;
+        /* Allow wider bubbles on mobile */
+    }
+
+    .message-bubble {
+        padding: 8px 12px;
+        /* Slightly tighter padding */
+    }
+
+    .message-image {
+        max-height: 240px;
+        /* Limit height on mobile */
+    }
+}
+
 .message-wrapper.sent .message-bubble {
     background-color: var(--color-sage);
     color: white;

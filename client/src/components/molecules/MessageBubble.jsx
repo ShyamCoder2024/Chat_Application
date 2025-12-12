@@ -11,16 +11,21 @@ const MessageBubble = ({ message, isSent }) => {
                     {message.type === 'image' ? (
                         <div className="message-image-container">
                             <img
-                                src={`${API_URL}${message.mediaUrl}`}
+                                src={message.mediaUrl?.startsWith('http') ? message.mediaUrl : `${API_URL}${message.mediaUrl}`}
                                 alt="Shared photo"
                                 className="message-image"
                                 loading="lazy"
-                                onClick={() => window.open(`${API_URL}${message.mediaUrl}`, '_blank')}
+                                onClick={() => window.open(message.mediaUrl?.startsWith('http') ? message.mediaUrl : `${API_URL}${message.mediaUrl}`, '_blank')}
                             />
                         </div>
                     ) : message.type === 'audio' ? (
-                        <div className="message-audio-container">
-                            <audio controls src={`${API_URL}${message.mediaUrl}`} className="voice-message-player" />
+                        <div className="message-audio-container" style={{ minWidth: '200px' }}>
+                            <audio
+                                controls
+                                src={message.mediaUrl?.startsWith('http') ? message.mediaUrl : `${API_URL}${message.mediaUrl}`}
+                                className="voice-message-player"
+                                style={{ width: '100%', height: '40px' }}
+                            />
                         </div>
                     ) : (
                         <p className="message-text">{message.content}</p>

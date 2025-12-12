@@ -55,14 +55,36 @@
 /* Mobile Specifics */
 @media (max-width: 768px) {
     .messages-area {
-        padding: 16px;
-        padding-bottom: 16px;
-        /* No extra padding needed as input is not absolute */
+        padding: 12px;
+        padding-bottom: 20px;
     }
 
     .input-area {
-        padding: 12px 16px;
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        padding: 8px 12px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        /* Stronger border for separation */
+    }
+
+    .message-form {
+        padding: 4px 4px 4px 14px;
+        /* Tighter padding */
+    }
+
+    .message-input {
+        font-size: 15px;
+        /* Prevent zoom */
+        min-height: 20px;
+    }
+
+    .send-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .mic-btn {
+        width: 40px !important;
+        height: 40px !important;
     }
 }
 
