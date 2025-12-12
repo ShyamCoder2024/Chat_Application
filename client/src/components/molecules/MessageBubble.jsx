@@ -47,6 +47,7 @@ const MessageBubble = ({ message, isSent }) => {
                                     alt="Shared photo"
                                     className="message-image"
                                     loading="lazy"
+                                    crossOrigin="anonymous" // Attempt to fix potential CORS issues
                                     style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', cursor: 'pointer', minHeight: '100px', backgroundColor: '#f0f0f0' }}
                                     onClick={() => window.open(mediaUrl, '_blank')}
                                     onError={(e) => {
@@ -61,6 +62,7 @@ const MessageBubble = ({ message, isSent }) => {
                             <audio
                                 controls
                                 className="voice-message-player"
+                                crossOrigin="anonymous"
                                 onError={(e) => console.error('Audio load error:', mediaUrl)}
                                 style={{ width: '100%' }}
                             >
