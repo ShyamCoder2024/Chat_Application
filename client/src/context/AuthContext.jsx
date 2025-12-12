@@ -68,7 +68,7 @@ export const AuthProvider = ({ children }) => {
             const data = await res.json();
             if (data.error) throw new Error(data.error);
 
-            console.log("✅ Login Successful (Simple Mode)");
+
 
             // In Simple Mode, we don't need per-user keys, but we set a dummy one
             // so other components don't break.
@@ -145,7 +145,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const resetKeys = async () => {
-        console.log("Reset keys not needed in Simple Mode");
+        // console.log("Reset keys not needed in Simple Mode");
         return true;
     };
 

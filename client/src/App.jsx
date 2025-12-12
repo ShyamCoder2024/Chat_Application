@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SoundProvider } from './context/SoundContext';
+import ErrorBoundary from './components/atoms/ErrorBoundary';
 
 // Lazy Load Pages
 const Login = lazy(() => import('./pages/Login'));
@@ -52,21 +53,23 @@ function App() {
         <SocketProvider>
           <SoundProvider>
             <Router>
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/setup" element={
-                    <ProtectedRoute>
-                      <ProfileSetup />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/" element={
-                    <ProtectedRoute>
-                      <ChatLayout />
-                    </ProtectedRoute>
-                  } />
-                </Routes>
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/setup" element={
+                      <ProtectedRoute>
+                        <ProfileSetup />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/" element={
+                      <ProtectedRoute>
+                        <ChatLayout />
+                      </ProtectedRoute>
+                    } />
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
             </Router>
           </SoundProvider>
         </SocketProvider>

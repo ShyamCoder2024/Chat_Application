@@ -67,7 +67,7 @@ const ChatLayout = () => {
             // Increase timeout to 60s for Render cold starts
             const timeoutId = setTimeout(() => controller.abort(), 60000);
 
-            console.log(`Fetching chats from: ${API_URL}/api/chats/${user._id}`);
+
 
             // Pagination: Fetch first 20 chats for speed
             const res = await fetch(`${API_URL}/api/chats/${user._id}?page=1&limit=20`, {
@@ -150,7 +150,6 @@ const ChatLayout = () => {
         if (!socket) return;
 
         const handleConnect = () => {
-            console.log("Socket connected/reconnected");
             // setIsSocketConnected(true); // Handled by context
             fetchChats();
             if (activeChat) {
@@ -176,7 +175,6 @@ const ChatLayout = () => {
         };
 
         const handleDisconnect = () => {
-            console.log("Socket disconnected");
             // setIsSocketConnected(false); // Handled by context
         };
 
@@ -468,7 +466,6 @@ const ChatLayout = () => {
 
                     const userData = await userRes.json();
                     if (userData.publicKey && userData.publicKey !== chat.publicKey) {
-                        console.log("Updated public key for user:", userData.firstName);
                         currentChat = {
                             ...chat,
                             publicKey: userData.publicKey,
@@ -520,7 +517,6 @@ const ChatLayout = () => {
     }, [activeChat, socket, user._id]);
 
     const handleSendMessage = React.useCallback((content, nonce = null, plaintext = null, metadata = {}) => {
-        console.log("handleSendMessage called with:", { content, nonce, plaintext, metadata });
         if (!socket || !activeChat) return;
 
         playSound('sent'); // Play sent sound
