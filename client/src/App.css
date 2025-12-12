@@ -1,3 +1,33 @@
+/* GLOBAL PERFORMANCE OPTIMIZATIONS */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Hardware acceleration for smooth animations */
+.chat-window,
+.messages-area,
+.message-wrapper,
+.chat-list-item,
+.sidebar {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+/* Smooth transitions everywhere */
+button,
+a,
+.btn,
+.message-bubble,
+.chat-list-item {
+  transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
+}
+
+button:active,
+.btn:active {
+  transform: scale(0.97);
+}
+
 #root {
   width: 100%;
   height: 100%;

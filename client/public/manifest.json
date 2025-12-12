@@ -1,25 +1,35 @@
 {
     "short_name": "MeetPune",
     "name": "MeetPune Chat",
+    "description": "Fast, secure messaging app",
     "icons": [
         {
             "src": "favicon.png",
             "sizes": "64x64 32x32 24x24 16x16",
-            "type": "image/x-icon"
+            "type": "image/png"
         },
         {
             "src": "logo192.png",
             "type": "image/png",
-            "sizes": "192x192"
+            "sizes": "192x192",
+            "purpose": "any maskable"
         },
         {
             "src": "logo512.png",
             "type": "image/png",
-            "sizes": "512x512"
+            "sizes": "512x512",
+            "purpose": "any maskable"
         }
     ],
-    "start_url": ".",
+    "start_url": "/",
+    "scope": "/",
     "display": "standalone",
-    "theme_color": "#f0f4f8",
-    "background_color": "#f0f4f8"
+    "orientation": "portrait",
+    "theme_color": "#7c9885",
+    "background_color": "#f5f1e3",
+    "categories": [
+        "social",
+        "communication"
+    ],
+    "prefer_related_applications": false
 }

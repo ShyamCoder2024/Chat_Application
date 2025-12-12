@@ -54,13 +54,6 @@ const Login = () => {
             return;
         }
 
-        // Email is optional in schema but good to collect if user wants to set it
-        // If we make it required in UI:
-        if (!email.trim()) {
-            setError('Email is required for account recovery');
-            return;
-        }
-
         setStep(2);
     };
 
@@ -227,12 +220,6 @@ const Login = () => {
                                                         onChange={(e) => setLastName(e.target.value)}
                                                     />
                                                 </div>
-                                                <Input
-                                                    placeholder="Email Address"
-                                                    type="email"
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                />
                                                 <Input
                                                     placeholder="Phone Number"
                                                     value={phone}
