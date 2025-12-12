@@ -135,3 +135,41 @@
         transform: translateY(0) scale(1);
     }
 }
+
+/* Audio Message Styles */
+.audio-bubble {
+    padding: 8px 12px !important;
+    min-width: 220px;
+}
+
+.message-audio-container {
+    width: 100%;
+    min-width: 180px;
+    max-width: 280px;
+}
+
+.voice-message-player {
+    width: 100%;
+    height: 36px;
+    border-radius: 18px;
+}
+
+/* Hide default audio controls styling on webkit */
+.voice-message-player::-webkit-media-controls-panel {
+    background-color: transparent;
+}
+
+@media (max-width: 768px) {
+    .audio-bubble {
+        min-width: 180px;
+    }
+
+    .message-audio-container {
+        min-width: 150px;
+        max-width: 220px;
+    }
+
+    .voice-message-player {
+        height: 32px;
+    }
+}

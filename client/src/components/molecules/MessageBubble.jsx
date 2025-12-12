@@ -4,29 +4,50 @@ import { API_URL } from '../../config';
 import './MessageBubble.css';
 
 const MessageBubble = ({ message, isSent }) => {
+    // Construct full URL for media, handling null/undefined
+    const getMediaUrl = () => {
+        if (!message.mediaUrl) return null;
+        if (message.mediaUrl.startsWith('http')) return message.mediaUrl;
+        return `${API_URL}${message.mediaUrl}`;
+    };
+
+    const mediaUrl = getMediaUrl();
+
+    // Debug log to trace issues
+    if (message.type === 'image' || message.type === 'audio') {
+        console.log('MessageBubble rendering media:', { type: message.type, mediaUrl, originalUrl: message.mediaUrl });
+    }
+
     return (
         <div className={`message-wrapper ${isSent ? 'sent' : 'received'}`}>
             <div className="message-bubble-container">
-                <div className={`message-bubble ${message.type === 'image' ? 'image-bubble' : ''}`}>
-                    {message.type === 'image' ? (
+                <div className={`message-bubble ${message.type === 'image' ? 'image-bubble' : ''} ${message.type === 'audio' ? 'audio-bubble' : ''}`}>
+                    {message.type === 'image' && mediaUrl ? (
                         <div className="message-image-container">
                             <img
-                                src={message.mediaUrl?.startsWith('http') ? message.mediaUrl : `${API_URL}${message.mediaUrl}`}
+                                src={mediaUrl}
                                 alt="Shared photo"
                                 className="message-image"
                                 loading="lazy"
-                                onClick={() => window.open(message.mediaUrl?.startsWith('http') ? message.mediaUrl : `${API_URL}${message.mediaUrl}`, '_blank')}
+                                onClick={() => window.open(mediaUrl, '_blank')}
+                                onError={(e) => { e.target.style.display = 'none'; console.error('Image load error:', mediaUrl); }}
                             />
                         </div>
-                    ) : message.type === 'audio' ? (
-                        <div className="message-audio-container" style={{ minWidth: '200px' }}>
+                    ) : message.type === 'audio' && mediaUrl ? (
+                        <div className="message-audio-container">
                             <audio
                                 controls
-                                src={message.mediaUrl?.startsWith('http') ? message.mediaUrl : `${API_URL}${message.mediaUrl}`}
+                                src={mediaUrl}
                                 className="voice-message-player"
-                                style={{ width: '100%', height: '40px' }}
-                            />
+                                onError={(e) => console.error('Audio load error:', mediaUrl)}
+                            >
+                                Your browser does not support audio.
+                            </audio>
                         </div>
+                    ) : message.type === 'image' || message.type === 'audio' ? (
+                        <p className="message-text" style={{ fontStyle: 'italic', opacity: 0.7 }}>
+                            {message.type === 'image' ? '📷 Photo (loading...)' : '🎤 Voice (loading...)'}
+                        </p>
                     ) : (
                         <p className="message-text">{message.content}</p>
                     )}

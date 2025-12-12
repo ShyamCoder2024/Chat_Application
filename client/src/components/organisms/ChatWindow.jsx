@@ -161,6 +161,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             if (!res.ok) throw new Error('Upload failed');
 
             const data = await res.json();
+            console.log("Image upload response:", data);
 
             // Send message with media
             onSendMessage('Photo', null, 'Photo', {
@@ -191,6 +192,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             if (!res.ok) throw new Error('Upload failed');
 
             const data = await res.json();
+            console.log("Audio upload response:", data);
 
             onSendMessage('Voice Message', null, 'Voice Message', {
                 type: 'audio',
