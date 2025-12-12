@@ -73,42 +73,39 @@ const sendEmail = require('../utils/email');
 
 // Forgot Password - Send OTP
 router.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Please provide your email address' });
+    const { phone, email } = req.body;
+    if (!phone || !email) return res.status(400).json({ error: 'Please provide both phone number and email address' });
 
     try {
-        const user = await User.findOne({ email: email.toLowerCase() });
+        // 1. Find User by Phone (Identity)
+        const user = await User.findOne({ phone });
         if (!user) {
-            return res.status(404).json({ error: 'No user found with this email' });
+            return res.status(404).json({ error: 'No account found with this phone number' });
         }
 
-        // Generate 6 digit OTP
+        // 2. Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-        // Hash OTP before saving (security) or save plain for simplicity? 
-        // For this task, saving plain is ok but hashed is better. 
-        // Let's safe raw OTP for now to ensure simple matching, but standard is hashed.
-        // User schema field `otp` is string.
 
         user.otp = otp;
         user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
         await user.save();
 
-        const message = `Your Password Reset OTP is: ${otp}\n\nIt is valid for 10 minutes.`;
+        // 3. Send OTP to the provided Email (Delivery) - ignoring DB email
+        const message = `Your Password Reset OTP for MeetPune matches with phone ${phone}.\n\nOTP: ${otp}\n\nValid for 10 minutes.`;
 
         try {
             await sendEmail({
-                email: user.email,
-                subject: 'Your Password Reset Token',
+                email: email, // Use the email provided in request
+                subject: 'MeetPune Password Reset OTP',
                 message
             });
 
-            res.status(200).json({ message: 'OTP sent to email!' });
+            res.status(200).json({ message: 'OTP sent to your email!' });
         } catch (err) {
             user.otp = undefined;
             user.otpExpires = undefined;
             await user.save();
-            return res.status(500).json({ error: 'There was an error sending the email. Try again later!' });
+            return res.status(500).json({ error: 'Failed to send email. Checks logs or try again.' });
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -117,39 +114,26 @@ router.post('/forgot-password', async (req, res) => {
 
 // Reset Password - Verify OTP & Set Password
 router.post('/reset-password', async (req, res) => {
-    const { email, otp, password } = req.body;
+    const { phone, otp, password } = req.body;
 
-    if (!email || !otp || !password) {
+    if (!phone || !otp || !password) {
         return res.status(400).json({ error: 'All fields are required' });
     }
 
     try {
-        const user = await User.findOne({
-            email,
-            otp,
-            otpExpires: { $gt: Date.now() }
-        }).select('+otp +otpExpires'); // Explicitly select hidden fields if needed, but simple find works if we didn't hide them in schema yet or if we just added them.
-        // Wait, I set select: false in schema. So standard findOne will NOT return them.
-        // But query conditions works on unselected fields? NO in Mongoose find().
-        // Actually, you can QUERY by them, but they won't be in the result doc unless +selected.
-        // To be safe, let's find by email FIRST, then check OTP.
+        // Find by phone
+        const user = await User.findOne({ phone }).select('+otp +otpExpires');
 
-        const userToCheck = await User.findOne({ email }).select('+otp +otpExpires');
-
-        if (!userToCheck || userToCheck.otp !== otp || userToCheck.otpExpires < Date.now()) {
+        if (!user || user.otp !== otp || user.otpExpires < Date.now()) {
             return res.status(400).json({ error: 'Invalid or expired OTP' });
         }
 
-        userToCheck.password = password; // Should try to hash if we had hashing middleware. 
-        // Current User model doesn't seem to have pre-save hash?
-        // Checking User.js... It doesn't. Passwords are plaintext in this app (Legacy).
-        // I will respect current architecture and save as is.
+        user.password = password;
+        user.otp = undefined;
+        user.otpExpires = undefined;
+        await user.save();
 
-        userToCheck.otp = undefined;
-        userToCheck.otpExpires = undefined;
-        await userToCheck.save();
-
-        res.status(200).json({ message: 'Password reset successful!' });
+        res.status(200).json({ message: 'Password reset successful!', user });
 
     } catch (err) {
         res.status(500).json({ error: err.message });

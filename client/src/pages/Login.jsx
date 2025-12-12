@@ -91,7 +91,7 @@ const Login = () => {
             const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: resetEmail })
+                body: JSON.stringify({ phone, email: resetEmail }) // Send Phone + Email
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
@@ -111,38 +111,21 @@ const Login = () => {
         setSuccessMessage('');
         setIsLoading(true);
         try {
-            // If we are at step 2, we just verify OTP? Actually API verifies both at step 3.
-            // We can just verify OTP locally or have a verify endpoint?
-            // Since our API is /reset-password (email, otp, newPassword), we do it all in Step 3.
-            // UI Flow: Step 2: Input OTP -> Next -> Step 3: Input Password -> Submit.
-            // Or Step 2: Input OTP & Password together? 
-            // Let's do Step 2: OTP. If user clicks "Verify", maybe we just move to Step 3?
-            // But we don't know if OTP is valid until we send it.
-            // Let's combine OTP + New Password in one step (Step 2) OR Step 2 (OTP) + Step 3 (Password).
-            // To be graceful, let's ask for OTP, then if looks ok (6 digits), ask for password.
-            // Actually, simplest is:
-            // Step 1: Email
-            // Step 2: Enter OTP and New Password
-
+            // Step 2: Verify OTP and Set New Password
             const res = await fetch(`${API_URL}/api/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: resetEmail, otp: resetOtp, password: newResetPassword })
+                body: JSON.stringify({ phone, otp: resetOtp, password: newResetPassword })
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
 
-            setSuccessMessage('Password reset successfully! Log in now.');
-            setTimeout(() => {
-                setIsForgotPassword(false);
-                setIsLogin(true);
-                setResetStep(1);
-                setResetEmail('');
-                setResetOtp('');
-                setNewResetPassword('');
-                setSuccessMessage('');
-            }, 2000);
+            setSuccessMessage('Password reset successfully! Logging you in...');
+
+            // Auto-Login Logic
+            await login(phone, newResetPassword);
+            navigate('/');
 
         } catch (err) {
             setError(err.message);
@@ -299,14 +282,19 @@ const Login = () => {
                             {resetStep === 1 ? (
                                 <form onSubmit={handleForgotPasswordRequest} className="login-form">
                                     <p style={{ color: 'var(--text-secondary)', marginBottom: '16px', fontSize: '14px' }}>
-                                        Enter your email address and we'll send you an OTP to reset your password.
+                                        Enter your Phone Number to identify your account and an Email Address to receive the OTP.
                                     </p>
                                     <Input
+                                        placeholder="Phone Number"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        autoFocus
+                                    />
+                                    <Input
                                         type="email"
-                                        placeholder="Enter your email"
+                                        placeholder="Email to receive OTP"
                                         value={resetEmail}
                                         onChange={(e) => setResetEmail(e.target.value)}
-                                        autoFocus
                                     />
                                     <Button type="submit" variant="primary" className="full-width" disabled={isLoading}>
                                         {isLoading ? 'Sending OTP...' : 'Send OTP'}
@@ -334,7 +322,7 @@ const Login = () => {
                                         onChange={(e) => setNewResetPassword(e.target.value)}
                                     />
                                     <Button type="submit" variant="primary" className="full-width" disabled={isLoading}>
-                                        {isLoading ? 'Resetting...' : 'Set New Password'}
+                                        {isLoading ? 'Resetting...' : 'Reset & Login'}
                                     </Button>
                                     <Button type="button" variant="text" className="full-width" onClick={() => setResetStep(1)}>
                                         Back
