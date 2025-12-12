@@ -21,8 +21,10 @@
 
 .messages-area {
     flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+    /* overflow-y: auto;  <-- Removed: Virtuoso handles scrolling */
+    /* overflow-x: hidden; <-- Removed */
+    overflow: hidden;
+    /* Ensure container is clipped */
     padding: 20px;
     display: flex;
     flex-direction: column;

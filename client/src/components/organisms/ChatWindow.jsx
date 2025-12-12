@@ -89,11 +89,40 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     };
 
     // Cleanup typing timeout on unmount
+    // Cleanup typing timeout on unmount
     useEffect(() => {
         return () => {
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         };
     }, []);
+
+    // Mobile Keyboard & Viewport Handling
+    useEffect(() => {
+        if (!window.visualViewport) return;
+
+        const handleResize = () => {
+            // Check if keyboard likely opened (height reduced significantly)
+            // or if we just want to ensure visibility
+            if (virtuosoRef.current) {
+                // Force a check/scroll to bottom if input is focused
+                if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+                    virtuosoRef.current.scrollToIndex({
+                        index: flattenedItems.length - 1,
+                        align: 'end',
+                        behavior: 'smooth'
+                    });
+                }
+            }
+        };
+
+        window.visualViewport.addEventListener('resize', handleResize);
+        window.visualViewport.addEventListener('scroll', handleResize); // Handle sticky headers/keyboards
+
+        return () => {
+            window.visualViewport.removeEventListener('resize', handleResize);
+            window.visualViewport.removeEventListener('scroll', handleResize);
+        };
+    }, [flattenedItems.length]);
 
     // Helper to process messages for display (decryption + date separators)
     // We need to pre-process this list for Virtuoso because Virtuoso takes a flat list count
@@ -152,17 +181,27 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
 
     // Initial Mount Scroll Logic - Ensure we start at bottom
     // Virtuoso handles `initialTopMostItemIndex` but sometimes with async data it needs a nudge
+    // Initial Mount & Updates Scroll Logic
+    // We want to force scroll to bottom on:
+    // 1. Initial Load
+    // 2. When a new message arrives and we are already at the bottom (handled by followOutput)
+    // 3. When WE send a message (handled by followOutput)
+
+    // However, sometimes on mobile initial load is flaky. Let's force it on mount.
     useEffect(() => {
         if (flattenedItems.length > 0) {
-            setTimeout(() => {
+            // Small delay to ensure Virtuoso has calculated sizes
+            const timer = setTimeout(() => {
                 virtuosoRef.current?.scrollToIndex({
                     index: flattenedItems.length - 1,
-                    align: 'end'
+                    align: 'end',
+                    behavior: 'auto' // Instant jump on load
                 });
-            }, 100);
+            }, 150);
+            return () => clearTimeout(timer);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Run ONCE on mount (key change forces re-mount)
+    }, [chat.id, flattenedItems.length === 0]); // Run when chat changes or we first get items
+
 
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
@@ -361,15 +400,22 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     style={{ height: '100%', width: '100%' }}
                     data={flattenedItems}
                     itemContent={renderItem}
-                    initialTopMostItemIndex={flattenedItems.length - 1} // Start at bottom
+                    initialTopMostItemIndex={flattenedItems.length - 1}
                     followOutput={(isAtBottom) => {
                         const lastItem = flattenedItems[flattenedItems.length - 1];
-                        // Always scroll to bottom if I just sent a message
+
+                        // 1. If I just sent a message, SCROLL.
                         if (lastItem && lastItem.type === 'message' && lastItem.data.senderId === currentUserId) {
                             return 'smooth';
                         }
-                        // Otherwise, only auto-scroll if user was already at the bottom
-                        return isAtBottom ? 'auto' : false;
+
+                        // 2. If we are currently at the bottom (or close to it) and a new message comes, SCROLL.
+                        if (isAtBottom) {
+                            return 'smooth';
+                        }
+
+                        // Otherwise (user scrolled up), don't disturb them.
+                        return false;
                     }}
                     startReached={hasMore ? onLoadMore : undefined}
                     components={{
@@ -385,7 +431,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                                 </div>
                             </div>
                         ),
-                        Footer: () => <div style={{ height: '20px' }}></div> // Spacing at bottom
+                        Footer: () => <div style={{ height: '40px' }}></div> // Extra spacing for ease of viewing last msg
                     }}
                 />
 
