@@ -48,7 +48,7 @@ export const SoundProvider = ({ children }) => {
         };
     }, []);
 
-    // Generate sound using Web Audio API (works on mobile!)
+    // Generate bubble sound using Web Audio API
     const playSound = (type) => {
         if (!soundEnabled) return;
 
@@ -64,24 +64,24 @@ export const SoundProvider = ({ children }) => {
             gainNode.connect(ctx.destination);
 
             if (type === 'sent') {
-                // Sent sound: Quick ascending pop
-                oscillator.frequency.setValueAtTime(800, ctx.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-                oscillator.type = 'sine';
-                gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-                oscillator.start(ctx.currentTime);
-                oscillator.stop(ctx.currentTime + 0.15);
-            } else {
-                // Received sound: Pleasant ding
-                oscillator.frequency.setValueAtTime(600, ctx.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.05);
-                oscillator.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.1);
+                // BUBBLE POP SOUND - Quick descending "bloop"
+                oscillator.frequency.setValueAtTime(1400, ctx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.12);
                 oscillator.type = 'sine';
                 gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
                 oscillator.start(ctx.currentTime);
-                oscillator.stop(ctx.currentTime + 0.3);
+                oscillator.stop(ctx.currentTime + 0.12);
+            } else {
+                // BUBBLE RECEIVE SOUND - Softer ascending bubble
+                oscillator.frequency.setValueAtTime(400, ctx.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.08);
+                oscillator.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.15);
+                oscillator.type = 'sine';
+                gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                oscillator.start(ctx.currentTime);
+                oscillator.stop(ctx.currentTime + 0.2);
             }
         } catch (error) {
             console.error('Error playing sound:', error);
