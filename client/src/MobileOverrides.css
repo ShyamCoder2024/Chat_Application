@@ -76,18 +76,30 @@
         opacity: 1 !important;
     }
 
-    /* Force Messages Area Expansion */
+    /* Force Messages Area Expansion - FIXED for Virtuoso */
     .messages-area {
         display: flex !important;
         flex-direction: column !important;
         flex: 1 !important;
         width: 100% !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        padding: 16px !important;
+        overflow: hidden !important;
+        /* Virtuoso handles internal scroll */
+        padding: 10px !important;
         background-color: transparent !important;
         min-height: 0 !important;
         /* Crucial for flex nested scrolling */
+    }
+
+    /* Hide ALL scrollbars on mobile */
+    *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    * {
+        -ms-overflow-style: none !important;
+        scrollbar-width: none !important;
     }
 
     /* Force Input Area Visibility */

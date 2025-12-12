@@ -151,58 +151,36 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     }, [messages, pendingUploads]);
 
     // Force scroll to bottom when MY message is added (including optimistic ones)
-    // REMOVED: Managed by Virtuoso followOutput now
-    useEffect(() => {
-        // Just keeping the dependency here to force re-evaluation of scroll strategy if needed
-    }, [flattenedItems, currentUserId]);
+    // This is CRITICAL for mobile user experience
+    const forceScrollToBottom = React.useCallback(() => {
+        if (virtuosoRef.current && flattenedItems.length > 0) {
+            virtuosoRef.current.scrollToIndex({
+                index: flattenedItems.length - 1,
+                align: 'end',
+                behavior: 'auto'
+            });
+        }
+    }, [flattenedItems.length]);
 
     // Initial Mount Scroll Logic - Ensure we start at bottom
-    // Virtuoso handles `initialTopMostItemIndex` but sometimes with async data it needs a nudge
-    // Initial Mount & Updates Scroll Logic
-    // We want to force scroll to bottom on:
-    // 1. Initial Load
-    // 2. When a new message arrives and we are already at the bottom (handled by followOutput)
-    // 3. When WE send a message (handled by followOutput)
-
-    // However, sometimes on mobile initial load is flaky. Let's force it on mount.
     useEffect(() => {
         if (flattenedItems.length > 0) {
             // Small delay to ensure Virtuoso has calculated sizes
-            const timer = setTimeout(() => {
-                virtuosoRef.current?.scrollToIndex({
-                    index: flattenedItems.length - 1,
-                    align: 'end',
-                    behavior: 'auto' // Instant jump on load
-                });
-            }, 150);
+            const timer = setTimeout(forceScrollToBottom, 100);
             return () => clearTimeout(timer);
         }
-    }, [chat.id, flattenedItems.length === 0]); // Run when chat changes or we first get items
+    }, [chat.id]); // Only on chat change
 
-
-    // Mobile Keyboard & Viewport Handling - URGENT FIX (Layout Method)
+    // Mobile Keyboard & Viewport Handling - FIXED
     useEffect(() => {
         if (!window.visualViewport) return;
 
         const handleResize = () => {
-            // Updated: Set explicit height to match visual viewport
-            // This forces the container to shrinking when keyboard opens
             setViewportHeight(`${window.visualViewport.height}px`);
-
-            if (virtuosoRef.current) {
-                // FORCE SCROLL TO BOTTOM ON RESIZE (Keyboard Open)
-                // Use a small timeout to let the layout adjust first
-                setTimeout(() => {
-                    virtuosoRef.current.scrollToIndex({
-                        index: flattenedItems.length - 1,
-                        align: 'end',
-                        behavior: 'auto' // Instant is better for keyboard interactions
-                    });
-                }, 50);
-            }
+            // ALWAYS force scroll to bottom when viewport changes (keyboard)
+            setTimeout(forceScrollToBottom, 100);
         };
 
-        // Initialize height
         setViewportHeight(`${window.visualViewport.height}px`);
 
         window.visualViewport.addEventListener('resize', handleResize);
@@ -212,33 +190,20 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             window.visualViewport.removeEventListener('resize', handleResize);
             window.visualViewport.removeEventListener('scroll', handleResize);
         };
-    }, [flattenedItems.length]); // Re-bind when items change to ensure latest count
+    }, [forceScrollToBottom]);
 
-    // Aggressive Auto-Scroll for New Messages (Self & Optimistic)
+    // CRITICAL: Scroll to bottom EVERY TIME a new message is added (mine or theirs)
+    // This is the most important fix for mobile
+    const prevLengthRef = useRef(flattenedItems.length);
     useEffect(() => {
-        const lastItem = flattenedItems[flattenedItems.length - 1];
-        if (!lastItem) return;
-
-        // If I just sent a message (or uploading), FORCE SCROLL DOWN INSTANTLY
-        if ((lastItem.type === 'message' && lastItem.data.senderId === currentUserId) ||
-            (lastItem.data && lastItem.data.isOptimistic)) {
-
-            virtuosoRef.current?.scrollToIndex({
-                index: flattenedItems.length - 1,
-                align: 'end',
-                behavior: 'auto' // Instant feedback is better than smooth here
-            });
-
-            // Double tap for safety
-            setTimeout(() => {
-                virtuosoRef.current?.scrollToIndex({
-                    index: flattenedItems.length - 1,
-                    align: 'end',
-                    behavior: 'smooth' // Smooth correct after instant jump
-                });
-            }, 100);
+        if (flattenedItems.length > prevLengthRef.current) {
+            // New items added - scroll to bottom
+            forceScrollToBottom();
+            // Double-tap for reliability on mobile
+            setTimeout(forceScrollToBottom, 200);
         }
-    }, [flattenedItems.length, currentUserId]);
+        prevLengthRef.current = flattenedItems.length;
+    }, [flattenedItems.length, forceScrollToBottom]);
 
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
@@ -463,23 +428,15 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     style={{ height: '100%', width: '100%' }}
                     data={flattenedItems}
                     itemContent={renderItem}
-                    initialTopMostItemIndex={flattenedItems.length - 1} // Start at bottom
-                    // AGGRESSIVE followOutput: Always scroll to bottom if we are near bottom OR if it's my message
-                    followOutput={(isAtBottom) => {
-                        const lastItem = flattenedItems[flattenedItems.length - 1];
-                        // If I sent the last message, ALWAYS scroll to bottom
-                        if (lastItem && lastItem.data && lastItem.data.senderId === currentUserId) {
-                            return 'auto'; // Instant jump for my messages
-                        }
-                        // For others, only if we are already at bottom
-                        return isAtBottom ? 'smooth' : false;
-                    }}
+                    initialTopMostItemIndex={flattenedItems.length - 1}
+                    // ALWAYS follow new output - critical for mobile
+                    followOutput={() => 'auto'}
                     startReached={hasMore ? onLoadMore : undefined}
                     components={{
                         Header: () => (
-                            <div style={{ padding: '20px' }}>
+                            <div style={{ padding: '12px' }}>
                                 {loadingMore && (
-                                    <div style={{ textAlign: 'center', padding: '10px', color: '#888', fontSize: '12px' }}>
+                                    <div style={{ textAlign: 'center', padding: '8px', color: '#888', fontSize: '12px' }}>
                                         Loading older messages...
                                     </div>
                                 )}
@@ -488,7 +445,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                                 </div>
                             </div>
                         ),
-                        Footer: () => <div style={{ height: '20px' }}></div> // Reduced footer space
+                        Footer: () => <div style={{ height: '10px' }}></div>
                     }}
                 />
 
