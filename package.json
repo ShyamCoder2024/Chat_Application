@@ -3,5 +3,9 @@
     "private": true,
     "scripts": {
         "build": "cd client && npm install && npm run build && cd .. && rm -rf public && mv client/dist public"
+    },
+    "dependencies": {
+        "dotenv": "^17.2.3",
+        "mongoose": "^9.0.1"
     }
 }
