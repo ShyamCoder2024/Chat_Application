@@ -13,4 +13,13 @@ export default defineConfig({
   define: {
     'global': 'window',
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom']
+        }
+      }
+    }
+  }
 })

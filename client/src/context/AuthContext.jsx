@@ -1,6 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { API_URL } from '../config';
-import { generateKeyPair } from '../utils/crypto';
 import CryptoJS from 'crypto-js';
 
 const AuthContext = createContext();

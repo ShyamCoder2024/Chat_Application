@@ -274,6 +274,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             isPlaintext: true
         };
 
+        // Optimistic UI for Image
         setPendingUploads(prev => [...prev, pendingMsg]);
         setIsUploading(true);
 
@@ -292,13 +293,13 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             const data = await res.json();
 
             // 3. Send Real Message (socket)
-            // This will trigger updates to `messages` prop via ChatLayout
             onSendMessage('Photo', null, 'Photo', {
                 type: 'image',
                 mediaUrl: data.url
             });
 
-            // 4. Remove local pending item (Parent's optimistic update takes over)
+            // 4. Remove local pending item immediately - Parent will likely render the real message soon
+            // But to avoid flicker, we can wait a tick or just let it be handled by logic
             setPendingUploads(prev => prev.filter(m => m.id !== tempId));
 
         } catch (err) {
@@ -365,25 +366,50 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const handleSend = (e) => {
         e.preventDefault();
         if (newMessage.trim()) {
-            let messageToSend = newMessage;
-            let nonce = null;
+            const tempId = `optimistic-${Date.now()}`;
+            const messageText = newMessage;
 
-            // Simple Encryption
-            try {
-                const encrypted = encryptMessage(newMessage, null);
-                messageToSend = encrypted.encrypted;
-                nonce = encrypted.nonce;
-            } catch (err) {
-                console.error("❌ Error encrypting message:", err);
-                alert("Encryption failed.");
-                return;
-            }
+            // 1. Create Optimistic Message
+            const optimisticMsg = {
+                id: tempId,
+                content: messageText,
+                senderId: currentUserId,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                createdAt: new Date().toISOString(),
+                type: 'text',
+                status: 'sending',
+                isOptimistic: true,
+                isPlaintext: true // Flag to skip decryption
+            };
 
-            onSendMessage(messageToSend, nonce, newMessage, { type: 'text' });
-            setNewMessage('');
-            if (socket) {
-                socket.emit('stop_typing', { chatId: chat.id, userId: currentUserId });
-            }
+            // 2. Add to Pending Uploads (treated as general pending items) to show immediately
+            setPendingUploads(prev => [...prev, optimisticMsg]);
+            setNewMessage(''); // Clear input immediately
+
+            // 3. Process Encryption & Send in Background
+            setTimeout(() => {
+                let messageToSend = messageText;
+                let nonce = null;
+
+                try {
+                    const encrypted = encryptMessage(messageText, null);
+                    messageToSend = encrypted.encrypted;
+                    nonce = encrypted.nonce;
+
+                    onSendMessage(messageToSend, nonce, messageText, { type: 'text' });
+
+                    // Remove optimistic once sent (real message comes back via props)
+                    setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+
+                    if (socket) {
+                        socket.emit('stop_typing', { chatId: chat.id, userId: currentUserId });
+                    }
+                } catch (err) {
+                    console.error("Encryption error:", err);
+                    alert("Failed to send message");
+                    setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+                }
+            }, 0);
         }
     };
 
