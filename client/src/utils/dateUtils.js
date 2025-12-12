@@ -5,7 +5,7 @@ export const formatLastSeen = (date) => {
     const isToday = d.toDateString() === now.toDateString();
     const isYesterday = new Date(now - 86400000).toDateString() === d.toDateString();
 
-    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
     if (isToday) return `Last seen today at ${time}`;
     if (isYesterday) return `Last seen yesterday at ${time}`;

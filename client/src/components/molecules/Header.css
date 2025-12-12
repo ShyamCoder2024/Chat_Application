@@ -65,6 +65,18 @@
     font-family: var(--font-primary);
     font-size: 13px;
     color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 200px;
+    /* Sensible default for mobile */
+}
+
+@media (min-width: 768px) {
+    .header-subtitle {
+        max-width: 400px;
+    }
 }
 
 .header-actions {
