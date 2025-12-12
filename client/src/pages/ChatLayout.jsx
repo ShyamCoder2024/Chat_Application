@@ -256,7 +256,7 @@ const ChatLayout = () => {
                                 message.senderId === user._id &&
                                 (
                                     (message.nonce && msg.nonce === message.nonce) ||
-                                    (msg.content === displayContent) || // Match plaintext content
+                                    (msg.content === decryptedContent) || // Match plaintext content
                                     (msg.content === message.content) // Match ciphertext (fallback)
                                 );
 
