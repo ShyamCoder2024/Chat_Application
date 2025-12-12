@@ -85,10 +85,13 @@ router.post('/forgot-password', async (req, res) => {
 
         // 2. Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-        user.otp = otp;
-        user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-        await user.save();
+        // Use updateOne to bypass validation for legacy users missing required fields
+        await User.updateOne(
+            { _id: user._id },
+            { $set: { otp, otpExpires } }
+        );
 
         // 3. Send OTP to the provided Email (Delivery) - ignoring DB email
         const message = `Your Password Reset OTP for MeetPune matches with phone ${phone}.\n\nOTP: ${otp}\n\nValid for 10 minutes.`;
@@ -102,9 +105,11 @@ router.post('/forgot-password', async (req, res) => {
 
             res.status(200).json({ message: 'OTP sent to your email!' });
         } catch (err) {
-            user.otp = undefined;
-            user.otpExpires = undefined;
-            await user.save();
+            // Revert OTP if email fails
+            await User.updateOne(
+                { _id: user._id },
+                { $unset: { otp: 1, otpExpires: 1 } }
+            );
             return res.status(500).json({ error: 'Failed to send email. Checks logs or try again.' });
         }
     } catch (err) {
@@ -128,12 +133,20 @@ router.post('/reset-password', async (req, res) => {
             return res.status(400).json({ error: 'Invalid or expired OTP' });
         }
 
-        user.password = password;
-        user.otp = undefined;
-        user.otpExpires = undefined;
-        await user.save();
+        // Use updateOne to bypass validation (since this is legacy data support)
+        // password is plain text so direct update is safe (per existing architecture)
+        await User.updateOne(
+            { _id: user._id },
+            {
+                $set: { password: password },
+                $unset: { otp: 1, otpExpires: 1 }
+            }
+        );
 
-        res.status(200).json({ message: 'Password reset successful!', user });
+        // Fetch updated user for response if needed (or just send success)
+        const updatedUser = await User.findById(user._id);
+
+        res.status(200).json({ message: 'Password reset successful!', user: updatedUser });
 
     } catch (err) {
         res.status(500).json({ error: err.message });
