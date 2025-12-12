@@ -158,11 +158,14 @@ const Login = () => {
         setIsForgotPassword(false);
     };
 
-    // ... (Avatar showcase & getAvatarUrl remain same)
-    // Make sure to include API_URL import if not present or passed from context?
-    // User context doesn't usually provide API_URL. We need to import it.
-    // Assuming API_URL is in config.js (checking imports...)
-    // Wait, previous file content didn't show API_URL import. I need to add it.
+    // Get a subset of avatars for the showcase
+    const showcaseAvatars = [
+        'Felix', 'Aneka', 'Zoe', 'Bear', 'Molly',
+        'Buddy', 'Oliver', 'Bella', 'Leo', 'Max',
+        'Charlie', 'Lucy', 'Coco', 'Ruby', 'Luna'
+    ];
+
+    const getAvatarUrl = (seed) => `https://api.dicebear.com/7.x/notionists/svg?seed=${seed}&backgroundColor=e1ece5,f4e3b1,dce8f5,f9dce6`;
 
     // RENDER:
     return (
