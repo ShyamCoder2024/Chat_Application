@@ -18,33 +18,46 @@ const MessageBubble = ({ message, isSent }) => {
         console.log('MessageBubble rendering media:', { type: message.type, mediaUrl, originalUrl: message.mediaUrl });
     }
 
+    const [imageError, setImageError] = useState(false);
+
     return (
         <div className={`message-wrapper ${isSent ? 'sent' : 'received'}`}>
             <div className="message-bubble-container">
                 <div className={`message-bubble ${message.type === 'image' ? 'image-bubble' : ''} ${message.type === 'audio' ? 'audio-bubble' : ''}`}>
                     {message.type === 'image' && mediaUrl ? (
-                        <div className="message-image-container">
-                            <img
-                                src={mediaUrl}
-                                alt="Shared photo"
-                                className="message-image"
-                                loading="lazy"
-                                style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', cursor: 'pointer' }}
-                                onClick={() => window.open(mediaUrl, '_blank')}
-                                onError={(e) => { e.target.style.display = 'none'; console.error('Image load error:', mediaUrl); }}
-                            />
-                        </div>
+                        imageError ? (
+                            <div className="media-error">
+                                <span style={{ fontSize: '24px' }}>⚠️</span>
+                                <span style={{ fontSize: '12px', marginTop: '4px' }}>Failed to load image</span>
+                            </div>
+                        ) : (
+                            <div className="message-image-container">
+                                <img
+                                    src={mediaUrl}
+                                    alt="Shared photo"
+                                    className="message-image"
+                                    loading="lazy"
+                                    style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', cursor: 'pointer', minHeight: '100px', backgroundColor: '#f0f0f0' }}
+                                    onClick={() => window.open(mediaUrl, '_blank')}
+                                    onError={(e) => {
+                                        console.error('Image load error:', mediaUrl);
+                                        setImageError(true);
+                                    }}
+                                />
+                            </div>
+                        )
                     ) : message.type === 'audio' && mediaUrl ? (
                         <div className="message-audio-container">
                             <audio
                                 controls
                                 className="voice-message-player"
                                 onError={(e) => console.error('Audio load error:', mediaUrl)}
+                                style={{ width: '100%' }}
                             >
                                 <source src={mediaUrl} type="audio/webm" />
                                 <source src={mediaUrl} type="audio/mp4" />
                                 <source src={mediaUrl} type="audio/mpeg" />
-                                Your browser does not support audio.
+                                <p style={{ fontSize: '11px', color: 'red' }}>Audio unavailable</p>
                             </audio>
                         </div>
                     ) : message.type === 'image' || message.type === 'audio' ? (

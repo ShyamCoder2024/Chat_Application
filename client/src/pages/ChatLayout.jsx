@@ -249,22 +249,29 @@ const ChatLayout = () => {
                     );
 
                     if (isOptimistic) {
-                        return prev.map(msg =>
-                            (msg.isOptimistic && msg.senderId === user._id && (message.senderId === user._id) && ((message.nonce && msg.nonce === message.nonce) || msg.content === message.content || msg.content === decryptedContent))
-                                ? {
-                                    id: message._id,
-                                    content: msg.content, // Keep the plaintext we already have!
-                                    nonce: message.nonce,
-                                    senderId: message.senderId,
-                                    time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                                    status: msg.status,
-                                    isPlaintext: true, // Keep it marked as plaintext
-                                    // Robustness: If server lost valid type, keep our optimistic type
-                                    type: (message.type && message.type !== 'text') ? message.type : (msg.type || 'text'),
-                                    mediaUrl: message.mediaUrl || msg.mediaUrl
-                                }
-                                : msg
-                        );
+                        return prev.map(msg => {
+                            // Match Condition
+                            const isMatch = msg.isOptimistic &&
+                                msg.senderId === user._id &&
+                                message.senderId === user._id &&
+                                (
+                                    (message.nonce && msg.nonce === message.nonce) ||
+                                    (msg.content === displayContent) || // Match plaintext content
+                                    (msg.content === message.content) // Match ciphertext (fallback)
+                                );
+
+                            return isMatch ? {
+                                id: message._id, // Update to server ID
+                                content: msg.content, // KEEP the optimistic plaintext content
+                                nonce: message.nonce,
+                                senderId: message.senderId,
+                                time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                status: message.status || 'sent',
+                                isPlaintext: true, // Keep marked as plaintext to skip decryption
+                                type: (message.type && message.type !== 'text') ? message.type : (msg.type || 'text'),
+                                mediaUrl: message.mediaUrl || msg.mediaUrl
+                            } : msg;
+                        });
                     }
 
                     // If not optimistic, it's a new message

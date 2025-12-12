@@ -61,11 +61,32 @@ const VoiceRecorder = ({ onSend, onCancel }) => {
     const handleSend = () => {
         if (!mediaRecorderRef.current) return;
 
+        // Ensure we stop and get the data
+        if (mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+        }
+
+        // We need to wait for the 'onstop' event which will fire after we call stop()
+        // But if we already defined onstop in startRecording (we didn't, we defined dataavailable),
+        // we should define it here or use a promise.
+        // The previous code defined onstop inside handleSend which is racy if stop() was already called.
+
         mediaRecorderRef.current.onstop = () => {
+            if (chunksRef.current.length === 0) {
+                console.warn("No audio chunks recorded");
+                return;
+            }
             const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
             onSend(blob);
         };
-        stopRecordingContext();
+
+        // Stop tracks immediately to release mic
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
     };
 
     const formatTime = (seconds) => {
