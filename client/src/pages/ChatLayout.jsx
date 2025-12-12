@@ -487,8 +487,8 @@ const ChatLayout = () => {
                 }
             }
 
-            // 3. Fetch Messages (Pagination: First 50)
-            const res = await fetch(`${API_URL}/api/chats/${chat.id}/messages?limit=50`);
+            // 3. Fetch Messages (Pagination: First 20)
+            const res = await fetch(`${API_URL}/api/chats/${chat.id}/messages?limit=20`);
             const data = await res.json();
 
             // Check race condition: Is this still the active chat?
@@ -506,7 +506,7 @@ const ChatLayout = () => {
                 mediaUrl: msg.mediaUrl
             }));
             setMessages(formattedMessages);
-            setHasMoreMessages(formattedMessages.length >= 50); // If we got 50, there might be more
+            setHasMoreMessages(formattedMessages.length >= 20); // If we got 20, there might be more
         } catch (err) {
             console.error("Error fetching messages/user:", err);
             // Only show error if we are still on that chat

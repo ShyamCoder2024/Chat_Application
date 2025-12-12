@@ -190,14 +190,15 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             setViewportHeight(`${window.visualViewport.height}px`);
 
             if (virtuosoRef.current) {
-                if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
-                    // Use 'auto' for instant jump to avoid keyboard covering input
+                // FORCE SCROLL TO BOTTOM ON RESIZE (Keyboard Open)
+                // Use a small timeout to let the layout adjust first
+                setTimeout(() => {
                     virtuosoRef.current.scrollToIndex({
                         index: flattenedItems.length - 1,
                         align: 'end',
-                        behavior: 'auto'
+                        behavior: 'auto' // Instant is better for keyboard interactions
                     });
-                }
+                }, 50);
             }
         };
 
@@ -463,8 +464,14 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     data={flattenedItems}
                     itemContent={renderItem}
                     initialTopMostItemIndex={flattenedItems.length - 1} // Start at bottom
-                    // Simpler followOutput: Only auto-scroll for others if already at bottom
+                    // AGGRESSIVE followOutput: Always scroll to bottom if we are near bottom OR if it's my message
                     followOutput={(isAtBottom) => {
+                        const lastItem = flattenedItems[flattenedItems.length - 1];
+                        // If I sent the last message, ALWAYS scroll to bottom
+                        if (lastItem && lastItem.data && lastItem.data.senderId === currentUserId) {
+                            return 'auto'; // Instant jump for my messages
+                        }
+                        // For others, only if we are already at bottom
                         return isAtBottom ? 'smooth' : false;
                     }}
                     startReached={hasMore ? onLoadMore : undefined}
@@ -481,7 +488,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                                 </div>
                             </div>
                         ),
-                        Footer: () => <div style={{ height: '40px' }}></div>
+                        Footer: () => <div style={{ height: '20px' }}></div> // Reduced footer space
                     }}
                 />
 

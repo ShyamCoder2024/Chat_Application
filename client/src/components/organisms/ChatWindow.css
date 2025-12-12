@@ -14,6 +14,18 @@
     overflow: hidden;
 }
 
+/* HIDE SCROLLBARS GLOBALLY inside chat window */
+.chat-window *::-webkit-scrollbar {
+    display: none;
+}
+
+.chat-window * {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
 :root[data-theme='dark'] .chat-window {
     background-color: #121212 !important;
     background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
@@ -57,8 +69,8 @@
 /* Mobile Specifics */
 @media (max-width: 768px) {
     .messages-area {
-        padding: 12px;
-        padding-bottom: 20px;
+        padding: 10px;
+        padding-bottom: 10px;
     }
 
     .input-area {
