@@ -15,11 +15,12 @@ import { API_URL } from '../../config';
 import { compressImage } from '../../utils/mediaUtils';
 import './ChatWindow.css';
 
+import { Virtuoso } from 'react-virtuoso';
+
 const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen, onLoadMore, hasMore, loadingMore }) => {
     const [newMessage, setNewMessage] = useState('');
     const [isTyping, setIsTyping] = useState(false);
-    const messagesEndRef = useRef(null);
-    const messagesContainerRef = useRef(null);
+    const virtuosoRef = useRef(null); // Virtuoso ref
     const fileInputRef = useRef(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
@@ -27,46 +28,13 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const { socket } = useSocket();
     const { secretKey } = useAuth();
     const isInitialLoad = useRef(true);
-    const previousScrollHeightRef = useRef(0);
 
-    const scrollToBottom = (behavior = 'smooth') => {
-        messagesEndRef.current?.scrollIntoView({ behavior });
-    };
+    // We don't need manual scroll refs anymore, Virtuoso handles it via initialTopMostItemIndex or followOutput
 
-    // Instant scroll on mount/chat change, smooth on new messages
-    useLayoutEffect(() => {
-        if (messages.length > 0) {
-            if (isInitialLoad.current) {
-                scrollToBottom('auto'); // Instant
-                isInitialLoad.current = false;
-            } else if (loadingMore) {
-                // Restore scroll position after loading more
-                if (messagesContainerRef.current) {
-                    const newScrollHeight = messagesContainerRef.current.scrollHeight;
-                    const scrollDiff = newScrollHeight - previousScrollHeightRef.current;
-                    messagesContainerRef.current.scrollTop = scrollDiff;
-                }
-            } else {
-                // Only scroll to bottom if we are already near bottom or it's a new message from us
-                const container = messagesContainerRef.current;
-                if (container) {
-                    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-                    const lastMessage = messages[messages.length - 1];
-                    const isMyMessage = lastMessage?.senderId === currentUserId;
+    // Scroll behavior is now handled by Virtuoso's `followOutput` or `initialTopMostItemIndex`
+    // checks.
 
-                    if (isNearBottom || isMyMessage) {
-                        scrollToBottom('smooth');
-                    }
-                }
-            }
-        }
-    }, [messages, chat.id, loadingMore, currentUserId]);
-
-    // Reset initial load flag when chat changes
-    useEffect(() => {
-        isInitialLoad.current = true;
-        previousScrollHeightRef.current = 0;
-    }, [chat.id]);
+    // Handle "Last Seen" logic... (keep existing useEffects)
 
     // Reset initial load flag when chat changes
     useEffect(() => {
@@ -127,19 +95,29 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         };
     }, []);
 
-    const handleScroll = () => {
-        if (messagesContainerRef.current) {
-            const { scrollTop, scrollHeight } = messagesContainerRef.current;
-            if (scrollTop === 0 && hasMore && !loadingMore) {
-                previousScrollHeightRef.current = scrollHeight;
-                onLoadMore();
+    // Helper to process messages for display (decryption + date separators)
+    // We need to pre-process this list for Virtuoso because Virtuoso takes a flat list count
+    // OR we can pass the data directly.
+    // Date separators inject extra items. Let's flatten the list with separators first.
+
+    const [flattenedItems, setFlattenedItems] = useState([]);
+
+    useEffect(() => {
+        const items = [];
+        let lastDate = null;
+
+        messages.forEach((msg, index) => {
+            const msgDate = new Date(msg.createdAt || Date.now()).toDateString();
+
+            if (msgDate !== lastDate) {
+                items.push({ type: 'separator', date: msg.createdAt || Date.now(), id: `date-${index}` });
+                lastDate = msgDate;
             }
-        }
-    };
 
-    // ... (existing imports)
-
-    // ... (existing imports)
+            items.push({ type: 'message', data: msg, id: msg.id });
+        });
+        setFlattenedItems(items);
+    }, [messages]);
 
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
@@ -312,53 +290,50 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         }
     };
 
-    const renderMessages = () => {
-        const result = [];
-        let lastDate = null;
-
-        messages.forEach((msg, index) => {
-            const msgDate = new Date(msg.createdAt || Date.now()).toDateString();
-
-            if (msgDate !== lastDate) {
-                result.push(
-                    <div key={`date-${index}`} className="date-separator">
-                        <span>{formatMessageDate(msg.createdAt || Date.now())}</span>
-                    </div>
-                );
-                lastDate = msgDate;
-            }
-
-            let displayMessage = msg;
-
-            // Try to decrypt if message has nonce (is encrypted)
-            if (msg.nonce && !msg.isPlaintext) {
-                try {
-                    // Simple Decryption
-                    const decryptedContent = decryptMessage(msg.content, msg.nonce, null);
-                    displayMessage = { ...msg, content: decryptedContent };
-                } catch (err) {
-                    console.warn(`⚠️ Failed to decrypt message ${msg.id}:`, err.message);
-                    displayMessage = { ...msg, content: '🔒 Encrypted message' };
-                }
-            } else {
-                // Plaintext message
-                displayMessage = msg;
-            }
-
-            result.push(
-                <MessageBubble
-                    key={msg.id}
-                    message={displayMessage}
-                    isSent={msg.senderId === currentUserId}
-                />
+    const renderItem = (index, item) => {
+        if (item.type === 'separator') {
+            return (
+                <div style={{ padding: '24px 0', display: 'flex', justifyContent: 'center', opacity: 0.8 }}>
+                    <span className="date-separator-span" style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        padding: '6px 16px',
+                        borderRadius: '9999px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        color: 'var(--text-secondary)'
+                    }}>
+                        {formatMessageDate(item.date)}
+                    </span>
+                </div>
             );
-        });
+        }
 
-        return result;
+        const msg = item.data;
+        let displayMessage = msg;
+
+        // Try to decrypt if message has nonce (is encrypted)
+        if (msg.nonce && !msg.isPlaintext) {
+            try {
+                const decryptedContent = decryptMessage(msg.content, msg.nonce, null);
+                displayMessage = { ...msg, content: decryptedContent };
+            } catch (err) {
+                // console.warn(`⚠️ Failed to decrypt message ${msg.id}`);
+                displayMessage = { ...msg, content: '🔒 Encrypted message' };
+            }
+        }
+
+        return (
+            <MessageBubble
+                key={msg.id}
+                message={displayMessage}
+                isSent={msg.senderId === currentUserId}
+            />
+        );
     };
 
     return (
         <div className="chat-window">
+            {/* Header */}
             <Header
                 title={chat.name}
                 subtitle={
@@ -377,25 +352,43 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 }
             />
 
-            <div
-                className="messages-area"
-                ref={messagesContainerRef}
-                onScroll={handleScroll}
-            >
-                {loadingMore && (
-                    <div style={{ textAlign: 'center', padding: '10px', color: '#888', fontSize: '12px' }}>
-                        Loading older messages...
+            <div className="messages-area" style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: 0 }}>
+                {/* Retention Notice - Static at top or part of list? Better as part of list header */}
+
+                <Virtuoso
+                    ref={virtuosoRef}
+                    style={{ height: '100%', width: '100%' }}
+                    data={flattenedItems}
+                    itemContent={renderItem}
+                    initialTopMostItemIndex={flattenedItems.length - 1} // Start at bottom
+                    followOutput={'auto'} // Auto scroll to bottom when new messages arrive
+                    startReached={hasMore ? onLoadMore : undefined}
+                    components={{
+                        Header: () => (
+                            <div style={{ padding: '20px' }}>
+                                {loadingMore && (
+                                    <div style={{ textAlign: 'center', padding: '10px', color: '#888', fontSize: '12px' }}>
+                                        Loading older messages...
+                                    </div>
+                                )}
+                                <div className="retention-notice">
+                                    <p>Messages are end-to-end encrypted 🔒 and auto-delete after 24 hours.</p>
+                                </div>
+                            </div>
+                        ),
+                        Footer: () => <div style={{ height: '20px' }}></div> // Spacing at bottom
+                    }}
+                />
+
+                {isTyping && (
+                    <div style={{ padding: '0 20px 10px 20px' }}>
+                        <TypingIndicator />
                     </div>
                 )}
-                <div className="retention-notice">
-                    <p>Messages are end-to-end encrypted 🔒 and auto-delete after 24 hours.</p>
-                </div>
-                {renderMessages()}
-                {isTyping && <TypingIndicator />}
-                <div ref={messagesEndRef} />
             </div>
 
             <div className="input-area">
+                {/* ... (existing Input Area code) */}
                 {isRecording ? (
                     <VoiceRecorder
                         onSend={handleAudioSend}
