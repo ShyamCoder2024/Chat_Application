@@ -67,6 +67,25 @@ export const SocketProvider = ({ children }) => {
                 });
             });
 
+            newSocket.on('receive_message', (message) => {
+                if (document.hidden && Notification.permission === 'granted') {
+                    const notification = new Notification('New Message', {
+                        body: message.type === 'text' ? message.content : `Sent a ${message.type}`,
+                        icon: '/vite.svg' // Replace with app icon if available
+                    });
+
+                    notification.onclick = () => {
+                        window.focus();
+                        notification.close();
+                    };
+                }
+            });
+
+            // Request permission
+            if (Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+
             return () => {
                 newSocket.off('connect', handleConnect);
                 newSocket.off('disconnect', handleDisconnect);

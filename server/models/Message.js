@@ -13,8 +13,17 @@ const messageSchema = new mongoose.Schema({
     },
     content: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: '' // Make content optional for media messages
+    },
+    type: {
+        type: String,
+        enum: ['text', 'image', 'audio'],
+        default: 'text'
+    },
+    mediaUrl: {
+        type: String,
+        default: null
     },
     nonce: {
         type: String, // For E2EE

@@ -14,6 +14,8 @@ const chatRoutes = require('./routes/chat');
 const Message = require('./models/Message');
 const Chat = require('./models/Chat');
 const User = require('./models/User');
+const uploadRoutes = require('./routes/upload');
+const path = require('path');
 
 const PORT = process.env.PORT || 3000;
 
@@ -45,6 +47,8 @@ app.get('/health', (req, res) => res.status(200).send('OK'));
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/users', require('./routes/users'));
+app.use('/api/upload', uploadRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Socket.io Setup
 const io = new Server(server, {

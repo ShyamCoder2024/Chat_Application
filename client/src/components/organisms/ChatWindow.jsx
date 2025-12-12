@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { Send, Paperclip } from 'lucide-react';
+import { Send, Paperclip, Image as ImageIcon, Loader, Mic } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import Header from '../molecules/Header';
 import MessageBubble from '../molecules/MessageBubble';
 import TypingIndicator from '../atoms/TypingIndicator';
 import ChatMenu from '../molecules/ChatMenu';
+import VoiceRecorder from '../molecules/VoiceRecorder';
 import Input from '../atoms/Input';
 import Button from '../atoms/Button';
 import { formatLastSeen, formatMessageDate } from '../../utils/dateUtils';
@@ -18,6 +19,9 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
     const typingTimeoutRef = useRef(null);
     const { socket } = useSocket();
     const { secretKey } = useAuth();
@@ -132,6 +136,75 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         }
     };
 
+    const handleFileSelect = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Reset input
+        e.target.value = '';
+
+        if (!file.type.startsWith('image/')) {
+            alert("Only images are supported for now.");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch(`${API_URL}/api/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) throw new Error('Upload failed');
+
+            const data = await res.json();
+
+            // Send message with media
+            onSendMessage('Photo', null, 'Photo', {
+                type: 'image',
+                mediaUrl: data.url
+            });
+
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("Failed to upload image.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleAudioSend = async (audioBlob) => {
+        setIsRecording(false);
+        setIsUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'voice-message.webm');
+
+            const res = await fetch(`${API_URL}/api/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!res.ok) throw new Error('Upload failed');
+
+            const data = await res.json();
+
+            onSendMessage('Voice Message', null, 'Voice Message', {
+                type: 'audio',
+                mediaUrl: data.url
+            });
+
+        } catch (err) {
+            console.error("Audio upload error:", err);
+            alert("Failed to send voice message.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleSend = (e) => {
         e.preventDefault();
         if (newMessage.trim()) {
@@ -149,7 +222,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 return;
             }
 
-            onSendMessage(messageToSend, nonce, newMessage);
+            onSendMessage(messageToSend, nonce, newMessage, { type: 'text' });
             setNewMessage('');
             if (socket) {
                 socket.emit('stop_typing', { chatId: chat.id, userId: currentUserId });
@@ -241,23 +314,47 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             </div>
 
             <div className="input-area">
-                <form onSubmit={handleSend} className="message-form">
-                    <Input
-                        placeholder="Type a message..."
-                        value={newMessage}
-                        onChange={handleInputChange}
-                        className="message-input"
+                {isRecording ? (
+                    <VoiceRecorder
+                        onSend={handleAudioSend}
+                        onCancel={() => setIsRecording(false)}
                     />
-                    <Button
-                        type="submit"
-                        variant="primary"
-                        size="icon"
-                        className="send-btn"
-                        disabled={!newMessage.trim()}
-                    >
-                        <Send size={20} />
-                    </Button>
-                </form>
+                ) : (
+                    <form onSubmit={handleSend} className="message-form">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            style={{ display: 'none' }}
+                            accept="image/*"
+                            onChange={handleFileSelect}
+                        />
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="icon"
+                            className="attach-btn"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                        >
+                            {isUploading ? <Loader className="spin" size={20} /> : <Paperclip size={20} />}
+                        </Button>
+                        <Input
+                            placeholder="Type a message..."
+                            value={newMessage}
+                            onChange={handleInputChange}
+                            className="message-input"
+                        />
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            size="icon"
+                            className="send-btn"
+                            disabled={!newMessage.trim() && !isUploading}
+                        >
+                            {newMessage.trim() ? <Send size={20} /> : <div onClick={(e) => { e.preventDefault(); setIsRecording(true); }}> <Mic size={20} /> </div>}
+                        </Button>
+                    </form>
+                )}
             </div>
         </div>
     );
