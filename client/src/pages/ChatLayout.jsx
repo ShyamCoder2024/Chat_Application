@@ -451,6 +451,8 @@ const ChatLayout = () => {
         let currentChat = chat;
         setActiveChat(currentChat);
         setView('chat');
+        setMessages([]); // CRITICAL: Clear previous messages immediately to prevent bleed
+        setHasMoreMessages(true); // Reset pagination for new chat
         socket.emit('join_room', chat.id);
 
         // Mark as read
@@ -911,6 +913,7 @@ const ChatLayout = () => {
                     </div>
                 ) : activeChat ? (
                     <ChatWindow
+                        key={activeChat.id} // CRITICAL: Force re-mount on chat switch to reset Virtuoso scroll state
                         chat={activeChat}
                         messages={messages}
                         currentUserId={user._id}

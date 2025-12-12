@@ -162,6 +162,20 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         }
     }, [flattenedItems, currentUserId]);
 
+    // Initial Mount Scroll Logic - Ensure we start at bottom
+    // Virtuoso handles `initialTopMostItemIndex` but sometimes with async data it needs a nudge
+    useEffect(() => {
+        if (flattenedItems.length > 0) {
+            setTimeout(() => {
+                virtuosoRef.current?.scrollToIndex({
+                    index: flattenedItems.length - 1,
+                    align: 'end'
+                });
+            }, 100);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Run ONCE on mount (key change forces re-mount)
+
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
