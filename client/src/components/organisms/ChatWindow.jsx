@@ -144,6 +144,24 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         setFlattenedItems(items);
     }, [messages, pendingUploads]);
 
+    // Force scroll to bottom when MY message is added (including optimistic ones)
+    useEffect(() => {
+        if (flattenedItems.length > 0) {
+            const lastItem = flattenedItems[flattenedItems.length - 1];
+            // If the last message is from ME, scroll to it.
+            if (lastItem.type === 'message' && lastItem.data.senderId === currentUserId) {
+                // Use setTimeout to ensure the render cycle is complete and height is calculated
+                setTimeout(() => {
+                    virtuosoRef.current?.scrollToIndex({
+                        index: flattenedItems.length - 1,
+                        align: 'end',
+                        behavior: 'smooth'
+                    });
+                }, 50);
+            }
+        }
+    }, [flattenedItems, currentUserId]);
+
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
