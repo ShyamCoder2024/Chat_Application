@@ -155,7 +155,9 @@ const ChatLayout = () => {
                             nonce: msg.nonce,
                             senderId: msg.senderId,
                             time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            status: msg.status
+                            status: msg.status,
+                            type: msg.type || 'text',
+                            mediaUrl: msg.mediaUrl
                         }));
                         setMessages(formattedMessages);
                     })
@@ -249,7 +251,9 @@ const ChatLayout = () => {
                                     senderId: message.senderId,
                                     time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                                     status: msg.status,
-                                    isPlaintext: true // Keep it marked as plaintext
+                                    isPlaintext: true, // Keep it marked as plaintext
+                                    type: message.type || 'text',
+                                    mediaUrl: message.mediaUrl
                                 }
                                 : msg
                         );
@@ -263,7 +267,9 @@ const ChatLayout = () => {
                         senderId: message.senderId,
                         createdAt: message.createdAt, // Store raw date
                         time: new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        status: message.status
+                        status: message.status,
+                        type: message.type || 'text',
+                        mediaUrl: message.mediaUrl
                     }];
                 });
 
@@ -450,7 +456,9 @@ const ChatLayout = () => {
                 senderId: msg.senderId,
                 createdAt: msg.createdAt, // Store raw date
                 time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                status: msg.status
+                status: msg.status,
+                type: msg.type || 'text',
+                mediaUrl: msg.mediaUrl
             }));
             setMessages(formattedMessages);
             setHasMoreMessages(formattedMessages.length >= 50); // If we got 50, there might be more
@@ -463,7 +471,7 @@ const ChatLayout = () => {
         }
     }, [activeChat, socket, user._id]);
 
-    const handleSendMessage = React.useCallback((content, nonce = null, plaintext = null) => {
+    const handleSendMessage = React.useCallback((content, nonce = null, plaintext = null, metadata = {}) => {
         if (!socket || !activeChat) return;
 
         playSound('sent'); // Play sent sound
@@ -471,6 +479,8 @@ const ChatLayout = () => {
         // Optimistic Update: Show message immediately
         // Use plaintext for local display if available, otherwise content
         const displayContent = plaintext || content;
+        const msgType = metadata?.type || 'text';
+        const msgMediaUrl = metadata?.mediaUrl || null;
 
         const tempId = Date.now();
         const optimisticMessage = {
@@ -480,7 +490,9 @@ const ChatLayout = () => {
             senderId: user._id,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             isOptimistic: true,
-            isPlaintext: true // Flag to tell ChatWindow NOT to decrypt this
+            isPlaintext: true, // Flag to tell ChatWindow NOT to decrypt this
+            type: msgType,
+            mediaUrl: msgMediaUrl
         };
 
         setMessages(prev => [...prev, optimisticMessage]);
@@ -490,7 +502,7 @@ const ChatLayout = () => {
             const updatedChats = prev.map(c =>
                 c.id === activeChat.id ? {
                     ...c,
-                    lastMessage: displayContent, // Use plaintext for preview!
+                    lastMessage: msgType === 'image' ? '📷 Photo' : (msgType === 'audio' ? '🎤 Voice Message' : displayContent), // Use plaintext for preview!
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 } : c
             );
@@ -508,7 +520,9 @@ const ChatLayout = () => {
             chatId: activeChat.id,
             senderId: user._id,
             content, // Send ENCRYPTED content to server
-            nonce
+            nonce,
+            type: msgType,
+            mediaUrl: msgMediaUrl
         });
     }, [socket, activeChat, playSound, user._id]);
 

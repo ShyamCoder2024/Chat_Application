@@ -109,7 +109,9 @@ io.on('connection', (socket) => {
           chatId: data.chatId,
           senderId: data.senderId,
           content: data.content,
-          nonce: data.nonce || null
+          nonce: data.nonce || null,
+          type: data.type || 'text',
+          mediaUrl: data.mediaUrl || null
         }),
         Chat.findById(data.chatId)
       ]);
@@ -126,7 +128,8 @@ io.on('connection', (socket) => {
           content: data.content,
           senderId: data.senderId,
           timestamp: newMessage.createdAt,
-          nonce: data.nonce || null
+          nonce: data.nonce || null,
+          type: data.type || 'text'
         },
         $inc: { [`unreadCounts.${otherUserId}`]: 1 }
       }).catch(err => console.error('Error updating chat metadata:', err));
