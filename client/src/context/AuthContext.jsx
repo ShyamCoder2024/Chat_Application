@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (phone, password, firstName, lastName, profilePic) => {
+    const register = async (phone, password, firstName, lastName, profilePic, email) => {
         try {
             const res = await fetch(`${API_URL}/api/auth/register`, {
                 method: 'POST',
@@ -96,7 +96,8 @@ export const AuthProvider = ({ children }) => {
                     profilePic,
                     publicKey: "simple_mode_pub", // Dummy key
                     encryptedPrivateKey: "simple_mode_priv", // Dummy key
-                    iv: "simple_mode_iv" // Dummy IV
+                    iv: "simple_mode_iv", // Dummy IV
+                    email // Pass email
                 })
             });
             const data = await res.json();

@@ -11,6 +11,22 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    email: {
+        type: String,
+        required: false, // Optional for backward compatibility but needed for reset
+        unique: true,
+        sparse: true,
+        trim: true,
+        lowercase: true
+    },
+    otp: {
+        type: String,
+        select: false
+    },
+    otpExpires: {
+        type: Date,
+        select: false
+    },
     firstName: {
         type: String,
         required: true,
