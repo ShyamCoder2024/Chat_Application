@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { Send, Paperclip, Image as ImageIcon, Loader, Mic } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { useSound } from '../../context/SoundContext';
 import Header from '../molecules/Header';
 import MessageBubble from '../molecules/MessageBubble';
 import TypingIndicator from '../atoms/TypingIndicator';
@@ -27,6 +28,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const typingTimeoutRef = useRef(null);
     const { socket } = useSocket();
     const { secretKey } = useAuth();
+    const { playSound } = useSound();
     const [viewportHeight, setViewportHeight] = useState('100%'); // Default to 100% (or dvh)
     const isInitialLoad = useRef(true);
 
@@ -327,6 +329,9 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             const tempId = `optimistic-${Date.now()}`;
             const messageText = newMessage;
 
+            // PLAY SEND SOUND IMMEDIATELY
+            playSound('sent');
+
             // 1. Create Optimistic Message
             const optimisticMsg = {
                 id: tempId,
@@ -344,7 +349,15 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             setPendingUploads(prev => [...prev, optimisticMsg]);
             setNewMessage(''); // Clear input immediately
 
-            // 3. Process Encryption & Send in Background
+            // 3. FORCE SCROLL TO BOTTOM IMMEDIATELY after adding optimistic message
+            requestAnimationFrame(() => {
+                forceScrollToBottom();
+                // Triple tap for mobile reliability
+                setTimeout(forceScrollToBottom, 50);
+                setTimeout(forceScrollToBottom, 150);
+            });
+
+            // 4. Process Encryption & Send in Background
             setTimeout(() => {
                 let messageToSend = messageText;
                 let nonce = null;
