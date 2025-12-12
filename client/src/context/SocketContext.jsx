@@ -68,23 +68,11 @@ export const SocketProvider = ({ children }) => {
             });
 
             newSocket.on('receive_message', (message) => {
-                if (document.hidden && Notification.permission === 'granted') {
-                    const notification = new Notification('New Message', {
-                        body: message.type === 'text' ? message.content : `Sent a ${message.type}`,
-                        icon: '/vite.svg' // Replace with app icon if available
-                    });
-
-                    notification.onclick = () => {
-                        window.focus();
-                        notification.close();
-                    };
-                }
+                // Notifications are handled in ChatLayout to ensure we don't show notifications for the active chat
+                // and to handle decryption properly.
             });
 
-            // Request permission
-            if (Notification.permission === 'default') {
-                Notification.requestPermission();
-            }
+
 
             return () => {
                 newSocket.off('connect', handleConnect);

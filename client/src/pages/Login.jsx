@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Input from '../components/atoms/Input';
@@ -30,8 +30,15 @@ const Login = () => {
     const [successMessage, setSuccessMessage] = useState(''); // For feedback
     const [isLoading, setIsLoading] = useState(false); // Loading state
 
-    const { login, register } = useAuth();
+    const { login, register, user } = useAuth(); // Destructure user
     const navigate = useNavigate();
+
+    // Reactive Redirection: Navigate to home when user state is populated
+    useEffect(() => {
+        if (user) {
+            navigate('/');
+        }
+    }, [user, navigate]);
 
     // ... (Viewport resize effect remains same)
 
@@ -68,11 +75,11 @@ const Login = () => {
                     return;
                 }
                 await login(phone, password);
-                navigate('/');
+                // Navigation handled by useEffect
             } else {
                 // Register
                 await register(phone, password, firstName, lastName, avatar, email); // Pass email
-                navigate('/');
+                // Navigation handled by useEffect
             }
         } catch (err) {
             setError(err.message);
@@ -125,7 +132,7 @@ const Login = () => {
 
             // Auto-Login Logic
             await login(phone, newResetPassword);
-            navigate('/');
+            // Navigation handled by useEffect
 
         } catch (err) {
             setError(err.message);

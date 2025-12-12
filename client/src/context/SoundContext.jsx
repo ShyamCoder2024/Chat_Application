@@ -18,47 +18,15 @@ export const SoundProvider = ({ children }) => {
         if (!soundEnabled) return;
 
         try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
+            // Simple generic notification sounds (Base64)
+            // Received: A pleasant "ding"
+            const receivedSound = 'data:audio/mp3;base64,SUQzBAAAAAABAFRYWFQAAAASAAADbWFqb3JfYnJhbmQAZGFzaABUWFhUAAAAEQAAA21pbm9yX3ZlcnNpb24AMABUWFhUAAAAHAAAA2NvbXBhdGlibGVfYnJhbmRzAGlzbzZtcDQxAFRTU0UAAAAOAAADTGF2ZjU3LjU2LjEwMQAAAAAAAAAAAAAA//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAACA00AAwAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAIACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAQACqEvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAYACq0vQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAgACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAoACq0vQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZBIACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZBsACp0vQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZCaACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZCgACq0vQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZDYACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZEIACpkLQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZE4ACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZFoACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZGUACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZHEACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj';
+            // Sent: A quick "pop"
+            const sentSound = 'data:audio/mp3;base64,//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAAAAAAALAAAADXGluZwAAAAQAAAAiAAADcgAAAgYjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAAACq0vQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAIACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAQACqUvQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAYACq0vQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj//uQZAgACpkLQAAAAAAERAAAAgAAAAAABAMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMj';
 
-            const ctx = new AudioContext();
-
-            if (type === 'received') {
-                // "Pop" sound
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
-
-                gain.gain.setValueAtTime(0.5, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-
-                osc.start();
-                osc.stop(ctx.currentTime + 0.1);
-            } else if (type === 'sent') {
-                // "Swoosh" / "Whoosh" sound (filtered noise or slide)
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(200, ctx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.2);
-
-                gain.gain.setValueAtTime(0.01, ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.1);
-                gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-
-                osc.start();
-                osc.stop(ctx.currentTime + 0.2);
-            }
+            const audio = new Audio(type === 'sent' ? sentSound : receivedSound);
+            audio.volume = 0.5;
+            audio.play().catch(e => console.error("Audio play failed:", e));
         } catch (error) {
             console.error('Error playing sound:', error);
         }

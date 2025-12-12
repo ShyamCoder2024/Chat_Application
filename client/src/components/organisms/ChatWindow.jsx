@@ -101,103 +101,82 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     // Date separators inject extra items. Let's flatten the list with separators first.
 
     const [flattenedItems, setFlattenedItems] = useState([]);
+    const [pendingUploads, setPendingUploads] = useState([]); // Local state for uploads in progress
 
     useEffect(() => {
         const items = [];
         let lastDate = null;
 
-        messages.forEach((msg, index) => {
-            const msgDate = new Date(msg.createdAt || Date.now()).toDateString();
+        // 1. Process standard messages with Pre-Decryption
+        const processedMessages = messages.map(msg => {
+            // Decrypt once here if needed
+            let content = msg.content;
+            if (msg.nonce && !msg.isPlaintext && !msg.isDecrypted) { // Add flag check to prevent re-decrypt
+                try {
+                    content = decryptMessage(msg.content, msg.nonce, null);
+                } catch (err) {
+                    content = '🔒 Encrypted message';
+                }
+            }
+            return { ...msg, content, isDecrypted: true };
+        });
+
+        // 2. Combine with Pending Uploads
+        // We want pending uploads at the bottom, but sorted by time ideally. 
+        // Since they are "new", they are usually at the end.
+        const allMessages = [...processedMessages, ...pendingUploads].sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.time || Date.now()); // Handle various date formats
+            const dateB = new Date(b.createdAt || b.time || Date.now());
+            return dateA - dateB;
+        });
+
+        allMessages.forEach((msg, index) => {
+            const rawDate = msg.createdAt || (msg.isOptimistic ? new Date() : Date.now());
+            const msgDate = new Date(rawDate).toDateString();
 
             if (msgDate !== lastDate) {
-                items.push({ type: 'separator', date: msg.createdAt || Date.now(), id: `date-${index}` });
+                items.push({ type: 'separator', date: rawDate, id: `date-${index}-${msgDate}` });
                 lastDate = msgDate;
             }
 
             items.push({ type: 'message', data: msg, id: msg.id });
         });
         setFlattenedItems(items);
-    }, [messages]);
+    }, [messages, pendingUploads]);
 
     const handleFileSelect = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
-        // Reset input
-        e.target.value = '';
+        e.target.value = ''; // Reset input
 
         if (!file.type.startsWith('image/')) {
             alert("Only images are supported for now.");
             return;
         }
 
-        // 1. Optimistic UI: Show immediately
-        const tempId = Date.now();
+        // 1. Immediate Optimistic UI
+        const tempId = `pending-${Date.now()}`;
         const localUrl = URL.createObjectURL(file);
 
-        // Add temporary message to UI
-        const optimisticMessage = {
+        const pendingMsg = {
             id: tempId,
             content: 'Photo',
             senderId: currentUserId,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            createdAt: new Date().toISOString(),
             type: 'image',
             mediaUrl: localUrl,
             status: 'sending',
-            isOptimistic: true // Flag to identify and replace later
+            isOptimistic: true,
+            isPlaintext: true
         };
 
-        // Update local state immediately
-        // We pass a function to setMessages to safely append
-        // Note: The parent component manages messages, but we can't easily update its state directly 
-        // without a prop function for "addOptimisticMessage". 
-        // However, looking at the code, onSendMessage sends to socket. 
-        // We will call onSendMessage with a special flag or handle it locally if possible.
-        // Actually, the best pattern here without refactoring the parent (ChatLayout) too much 
-        // is to let the upload finish, BUT for "smoothness" we really want to show it now.
-        // 
-        // Since ChatWindow receives `messages` as a prop, we can't mutate it directly.
-        // BUT, ChatLayout has `handleSendMessage` which does optimistic updates for TEXT.
-        // We should leverage that or specific logic.
-        //
-        // Let's look at `onSendMessage` signature in ChatLayout: 
-        // handleSendMessage(content, nonce, plaintext, metadata)
-        // It ALREADY does optimistic updates! 
-        // So we just need to pass the LOCAL URL in metadata first? 
-        // No, `onSendMessage` sends to socket immediately. We don't want to send the local blob URL to socket.
-
-        // REVISED STRATEGY: 
-        // We will maintain a `localUploadingMessages` state in ChatWindow to show *pending* uploads
-        // overlaid on the messages list, OR we just block-UI (less smooth).
-        // OR better: We simply upload FAST (compression) and assume the user accepts a small delay.
-        // 
-        // WAIT, the user explicitly asked for "smoother experience".
-        // The best way is:
-        // 1. Compress (Fast)
-        // 2. Upload
-        // 3. Send
-        // 
-        // If we want TRUE optimistic (WhatsApp style), we need to modify ChatLayout to handle "pending uploads".
-        // Given constraints, I will use `compressImage` to speed it up significantly, 
-        // and add a "Sending..." toast or indicator if I can't easily touch ChatLayout state deeply.
-
-        // ACTUALLY, I can modify `onSendMessage` in ChatWindow to be smarter? No, it calls prop.
-
-        // Let's stick to the plan: Client-side compression drastically reduces upload time (e.g. 5MB -> 300KB).
-        // This alone makes it feel much faster. 
-        // Combined with `setIsUploading(true)` which shows a loader button.
-
-        // Let's try to pass the local preview to `onSendMessage`? 
-        // If I pass the local URL, the socket will broadcast it to others who CANNOT see it. Bad.
-
-        // OK, I will implement **Compression** first as it's the biggest win. 
-        // And I will optimize the "Loading" state to be less obtrusive.
-
+        setPendingUploads(prev => [...prev, pendingMsg]);
         setIsUploading(true);
-        try {
-            // Compress!
-            const compressedFile = await compressImage(file);
 
+        try {
+            // 2. Compress & Upload
+            const compressedFile = await compressImage(file);
             const formData = new FormData();
             formData.append('file', compressedFile);
 
@@ -206,22 +185,25 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 body: formData
             });
 
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Upload failed');
-            }
-
+            if (!res.ok) throw new Error('Upload failed');
             const data = await res.json();
-            console.log("Image upload response:", data);
 
+            // 3. Send Real Message (socket)
+            // This will trigger updates to `messages` prop via ChatLayout
             onSendMessage('Photo', null, 'Photo', {
                 type: 'image',
                 mediaUrl: data.url
             });
 
+            // 4. Remove local pending item (Parent's optimistic update takes over)
+            setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+
         } catch (err) {
             console.error("Upload error:", err);
             alert(`Failed to upload image: ${err.message}`);
+            // Keep pending item but mark error? Or remove?
+            // For now, remove it to prevent "stuck" messages
+            setPendingUploads(prev => prev.filter(m => m.id !== tempId));
         } finally {
             setIsUploading(false);
         }
@@ -229,9 +211,23 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
 
     const handleAudioSend = async (audioBlob) => {
         setIsRecording(false);
-        // Show lightweight loading state
-        // setIsUploading(true); // Don't block the UI with a global loader for audio, maybe? 
-        // Actually, preventing spam is good.
+        const tempId = `pending-audio-${Date.now()}`;
+        const localUrl = URL.createObjectURL(audioBlob);
+
+        // Optimistic Audio
+        const pendingMsg = {
+            id: tempId,
+            content: 'Voice Message',
+            senderId: currentUserId,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            createdAt: new Date().toISOString(),
+            type: 'audio',
+            mediaUrl: localUrl,
+            status: 'sending',
+            isOptimistic: true,
+            isPlaintext: true
+        };
+        setPendingUploads(prev => [...prev, pendingMsg]);
         setIsUploading(true);
 
         try {
@@ -244,22 +240,20 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                 body: formData
             });
 
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Upload failed');
-            }
-
+            if (!res.ok) throw new Error('Upload failed');
             const data = await res.json();
-            console.log("Audio upload response:", data);
 
             onSendMessage('Voice Message', null, 'Voice Message', {
                 type: 'audio',
                 mediaUrl: data.url
             });
 
+            setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+
         } catch (err) {
             console.error("Audio upload error:", err);
             alert(`Failed to send voice message: ${err.message}`);
+            setPendingUploads(prev => prev.filter(m => m.id !== tempId));
         } finally {
             setIsUploading(false);
         }
@@ -308,25 +302,12 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             );
         }
 
-        const msg = item.data;
-        let displayMessage = msg;
-
-        // Try to decrypt if message has nonce (is encrypted)
-        if (msg.nonce && !msg.isPlaintext) {
-            try {
-                const decryptedContent = decryptMessage(msg.content, msg.nonce, null);
-                displayMessage = { ...msg, content: decryptedContent };
-            } catch (err) {
-                // console.warn(`⚠️ Failed to decrypt message ${msg.id}`);
-                displayMessage = { ...msg, content: '🔒 Encrypted message' };
-            }
-        }
-
+        // Render the pre-processed message (already decrypted)
         return (
             <MessageBubble
-                key={msg.id}
-                message={displayMessage}
-                isSent={msg.senderId === currentUserId}
+                key={item.id}
+                message={item.data}
+                isSent={item.data.senderId === currentUserId}
             />
         );
     };

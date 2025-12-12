@@ -38,10 +38,13 @@ const ChatLayout = () => {
 
     const [isChatsLoading, setIsChatsLoading] = useState(true);
 
-    // Request Notification Permission on mount
+    // Request Notification Permission
     useEffect(() => {
-        if ('Notification' in window && Notification.permission !== 'granted') {
-            Notification.requestPermission();
+        if ('Notification' in window) {
+            if (Notification.permission === 'default') {
+                // Request on mount (might be blocked by some browsers without user interaction)
+                Notification.requestPermission().catch(console.error);
+            }
         }
     }, []);
 
@@ -383,7 +386,7 @@ const ChatLayout = () => {
 
                     const notification = new Notification('New Message', {
                         body: notifContent,
-                        icon: '/favicon.ico' // Ensure this path exists or remove
+                        icon: '/favicon.png'
                     });
 
                     notification.onclick = () => {
