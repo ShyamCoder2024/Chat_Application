@@ -13,6 +13,7 @@ import { formatLastSeen, formatMessageDate } from '../../utils/dateUtils';
 import { encryptMessage, decryptMessage } from '../../utils/crypto';
 import { API_URL } from '../../config';
 import { compressImage } from '../../utils/mediaUtils';
+import { uploadFile } from '../../services/api';
 import './ChatWindow.css';
 
 const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onClearChat, onBlockUser, onVisitProfile, isOnline, lastSeen, onLoadMore, hasMore, loadingMore }) => {
@@ -22,6 +23,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     const messagesContainerRef = useRef(null);
     const fileInputRef = useRef(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0); // NEW: Track upload progress
     const [isRecording, setIsRecording] = useState(false);
     const typingTimeoutRef = useRef(null);
     const { socket } = useSocket();
@@ -174,42 +176,63 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             createdAt: new Date().toISOString(),
             type: 'image',
             mediaUrl: localUrl,
-            status: 'sending',
+            status: 'uploading',
             isOptimistic: true,
-            isPlaintext: true
+            isPlaintext: true,
+            uploadProgress: 0
         };
 
         setPendingUploads(prev => [...prev, pendingMsg]);
         setIsUploading(true);
+        setUploadProgress(0);
         playSound('sent');
 
-        try {
-            const compressedFile = await compressImage(file);
-            const formData = new FormData();
-            formData.append('file', compressedFile);
+        // Retry logic for uploads
+        const MAX_RETRIES = 3;
+        let lastError = null;
 
-            const res = await fetch(`${API_URL}/api/upload`, {
-                method: 'POST',
-                body: formData
-            });
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            try {
+                // Compress image
+                const compressedFile = await compressImage(file);
 
-            if (!res.ok) throw new Error('Upload failed');
-            const data = await res.json();
+                // Upload with progress tracking
+                const data = await uploadFile(compressedFile, (progress) => {
+                    setUploadProgress(progress);
+                    // Update pending message with progress
+                    setPendingUploads(prev => prev.map(m =>
+                        m.id === tempId ? { ...m, uploadProgress: progress } : m
+                    ));
+                });
 
-            onSendMessage('Photo', null, 'Photo', {
-                type: 'image',
-                mediaUrl: data.url
-            });
+                // Success - send message
+                onSendMessage('Photo', null, 'Photo', {
+                    type: 'image',
+                    mediaUrl: data.url
+                });
 
-            setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+                setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+                setIsUploading(false);
+                setUploadProgress(0);
+                return; // Exit on success
 
-        } catch (err) {
-            console.error("Upload error:", err);
-            alert(`Failed to upload image: ${err.message}`);
-            setPendingUploads(prev => prev.filter(m => m.id !== tempId));
-        } finally {
-            setIsUploading(false);
+            } catch (err) {
+                lastError = err;
+                console.warn(`Upload attempt ${attempt + 1} failed:`, err.message);
+
+                if (attempt < MAX_RETRIES - 1) {
+                    // Wait before retry (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+                }
+            }
         }
+
+        // All retries failed
+        console.error("Upload failed after retries:", lastError);
+        alert(`Failed to upload image: ${lastError?.message || 'Unknown error'}. Please try again.`);
+        setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+        setIsUploading(false);
+        setUploadProgress(0);
     };
 
     const handleAudioSend = async (audioBlob) => {
@@ -225,41 +248,60 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             createdAt: new Date().toISOString(),
             type: 'audio',
             mediaUrl: localUrl,
-            status: 'sending',
+            status: 'uploading',
             isOptimistic: true,
-            isPlaintext: true
+            isPlaintext: true,
+            uploadProgress: 0
         };
         setPendingUploads(prev => [...prev, pendingMsg]);
         setIsUploading(true);
+        setUploadProgress(0);
         playSound('sent');
 
-        try {
-            const formData = new FormData();
-            const blob = new Blob([audioBlob], { type: 'audio/webm' });
-            formData.append('file', blob, 'voice_message.webm');
+        // Retry logic for audio uploads
+        const MAX_RETRIES = 3;
+        let lastError = null;
 
-            const res = await fetch(`${API_URL}/api/upload`, {
-                method: 'POST',
-                body: formData
-            });
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            try {
+                const blob = new Blob([audioBlob], { type: 'audio/webm' });
+                const file = new File([blob], 'voice_message.webm', { type: 'audio/webm' });
 
-            if (!res.ok) throw new Error('Upload failed');
-            const data = await res.json();
+                // Upload with progress tracking
+                const data = await uploadFile(file, (progress) => {
+                    setUploadProgress(progress);
+                    setPendingUploads(prev => prev.map(m =>
+                        m.id === tempId ? { ...m, uploadProgress: progress } : m
+                    ));
+                });
 
-            onSendMessage('Voice Message', null, 'Voice Message', {
-                type: 'audio',
-                mediaUrl: data.url
-            });
+                // Success
+                onSendMessage('Voice Message', null, 'Voice Message', {
+                    type: 'audio',
+                    mediaUrl: data.url
+                });
 
-            setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+                setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+                setIsUploading(false);
+                setUploadProgress(0);
+                return;
 
-        } catch (err) {
-            console.error("Audio upload error:", err);
-            alert(`Failed to send voice message: ${err.message}`);
-            setPendingUploads(prev => prev.filter(m => m.id !== tempId));
-        } finally {
-            setIsUploading(false);
+            } catch (err) {
+                lastError = err;
+                console.warn(`Audio upload attempt ${attempt + 1} failed:`, err.message);
+
+                if (attempt < MAX_RETRIES - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+                }
+            }
         }
+
+        // All retries failed
+        console.error("Audio upload failed after retries:", lastError);
+        alert(`Failed to send voice message: ${lastError?.message || 'Unknown error'}. Please try again.`);
+        setPendingUploads(prev => prev.filter(m => m.id !== tempId));
+        setIsUploading(false);
+        setUploadProgress(0);
     };
 
     const handleSend = (e) => {
@@ -415,8 +457,27 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                             className="attach-btn"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isUploading}
+                            style={{ position: 'relative' }}
                         >
-                            {isUploading ? <Loader className="spin" size={20} /> : <Paperclip size={20} />}
+                            {isUploading ? (
+                                <>
+                                    <Loader className="spin" size={20} />
+                                    {uploadProgress > 0 && (
+                                        <span style={{
+                                            position: 'absolute',
+                                            bottom: '-16px',
+                                            left: '50%',
+                                            transform: 'translateX(-50%)',
+                                            fontSize: '10px',
+                                            color: 'var(--color-sage-dark)',
+                                            fontWeight: '600',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {uploadProgress}%
+                                        </span>
+                                    )}
+                                </>
+                            ) : <Paperclip size={20} />}
                         </Button>
                         <textarea
                             placeholder="Type a message..."

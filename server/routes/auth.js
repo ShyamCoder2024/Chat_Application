@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const { validatePhone, validateEmail, validateRequired, sanitizeString } = require('../middleware/sanitize');
 
-// Register
 // Register
 router.post('/register', async (req, res) => {
     const { phone, password, firstName, lastName, profilePic, publicKey, email } = req.body;
 
-    if (!phone || !password || !firstName || !lastName) {
-        return res.status(400).json({ error: 'All fields are required' });
+    // Input validation
+    try {
+        validateRequired(phone, 'Phone number');
+        validateRequired(password, 'Password');
+        validateRequired(firstName, 'First name');
+        validateRequired(lastName, 'Last name');
+        validatePhone(phone);
+        if (email) validateEmail(email);
+    } catch (validationError) {
+        return res.status(400).json({ error: validationError.message });
     }
 
     try {
@@ -157,8 +165,13 @@ router.post('/reset-password', async (req, res) => {
 router.post('/login', async (req, res) => {
     const { phone, password } = req.body;
 
-    if (!phone || !password) {
-        return res.status(400).json({ error: 'Phone and password are required' });
+    // Input validation
+    try {
+        validateRequired(phone, 'Phone number');
+        validateRequired(password, 'Password');
+        validatePhone(phone);
+    } catch (validationError) {
+        return res.status(400).json({ error: validationError.message });
     }
 
     try {

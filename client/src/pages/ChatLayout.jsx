@@ -7,11 +7,12 @@ import ChatWindow from '../components/organisms/ChatWindow';
 import ProfileSection from '../components/organisms/ProfileSection';
 import Button from '../components/atoms/Button';
 import Input from '../components/atoms/Input';
-import Avatar from '../components/atoms/Avatar'; // Import Avatar for search result
+import Avatar from '../components/atoms/Avatar';
 import { Plus, MessageCircle, User as UserIcon, Search } from 'lucide-react';
 import ThemeToggle from '../components/atoms/ThemeToggle';
 import { API_URL } from '../config';
 import { decryptMessage } from '../utils/crypto';
+import { get, post } from '../services/api';
 import './ChatLayout.css';
 
 const ChatLayout = () => {

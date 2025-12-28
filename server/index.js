@@ -16,6 +16,7 @@ const Chat = require('./models/Chat');
 const User = require('./models/User');
 const uploadRoutes = require('./routes/upload');
 const path = require('path');
+const { sanitizeMiddleware } = require('./middleware/sanitize');
 
 const PORT = process.env.PORT || 3000;
 // Force redeploy v3 - Validation fix
@@ -30,14 +31,31 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(compression());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate Limiting
+// Input Sanitization - Apply to all routes
+app.use(sanitizeMiddleware);
+
+// Request Timeout Middleware (30 seconds for normal requests)
+app.use((req, res, next) => {
+  // Skip timeout for upload routes (handled separately)
+  if (req.path.startsWith('/api/upload')) {
+    return next();
+  }
+  req.setTimeout(30000, () => {
+    res.status(408).json({ error: 'Request timeout' });
+  });
+  next();
+});
+
+// Rate Limiting - More generous for legitimate users
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 300, // Increased from 100 to 300 requests per windowMs
   standardHeaders: true,
   legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
 });
 app.use('/api', limiter);
 
@@ -51,14 +69,28 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/upload', uploadRoutes);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Socket.io Setup
+// Socket.io Setup - Optimized for 10k+ concurrent users
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for deployment
+    origin: "*",
     methods: ["GET", "POST"]
   },
   parser: msgpackParser,
-  transports: ['websocket', 'polling'] // Force transports for better compatibility
+  transports: ['websocket', 'polling'],
+  // Performance optimizations
+  pingTimeout: 60000, // 60 seconds - more forgiving for mobile
+  pingInterval: 25000, // 25 seconds
+  upgradeTimeout: 30000, // 30 seconds to upgrade to websocket
+  maxHttpBufferSize: 1e6, // 1 MB max message size
+  // Connection state recovery for reconnections
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+    skipMiddlewares: true,
+  },
+  // Adapter settings for better memory management
+  perMessageDeflate: {
+    threshold: 1024, // Only compress messages > 1KB
+  }
 });
 
 const onlineUsers = new Map(); // userId -> Set<socketId>

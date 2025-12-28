@@ -3,13 +3,22 @@ const router = express.Router();
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
 const User = require('../models/User');
+const { isValidObjectId, validatePhone } = require('../middleware/sanitize');
 
 // Create or Get Chat
 router.post('/', async (req, res) => {
     const { currentUserId, targetPhone } = req.body;
 
+    // Validate inputs
+    if (!currentUserId || !isValidObjectId(currentUserId)) {
+        return res.status(400).json({ error: 'Invalid user ID' });
+    }
+    if (!targetPhone) {
+        return res.status(400).json({ error: 'Target phone is required' });
+    }
+
     try {
-        const targetUser = await User.findOne({ phone: targetPhone });
+        const targetUser = await User.findOne({ phone: targetPhone }).lean();
         if (!targetUser) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -44,6 +53,11 @@ router.post('/', async (req, res) => {
 // Get All Chats for User
 router.get('/:userId', async (req, res) => {
     try {
+        // Validate userId
+        if (!isValidObjectId(req.params.userId)) {
+            return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
         const { page = 1, limit = 20 } = req.query;
         const skip = (page - 1) * limit;
 
@@ -90,6 +104,11 @@ router.get('/:userId', async (req, res) => {
 // Get Single Chat
 router.get('/single/:chatId', async (req, res) => {
     try {
+        // Validate chatId
+        if (!isValidObjectId(req.params.chatId)) {
+            return res.status(400).json({ error: 'Invalid chat ID' });
+        }
+
         const chat = await Chat.findById(req.params.chatId)
             .populate('userIds', 'firstName lastName name phone profilePic lastSeen publicKey')
             .lean();

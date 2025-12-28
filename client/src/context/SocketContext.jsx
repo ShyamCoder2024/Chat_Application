@@ -12,39 +12,59 @@ export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
     const { user } = useAuth();
     const [onlineUsers, setOnlineUsers] = useState(new Set());
-
     const [isConnected, setIsConnected] = useState(false);
+    const [reconnectAttempt, setReconnectAttempt] = useState(0);
 
     useEffect(() => {
         if (user) {
             const newSocket = io(API_URL, {
                 parser: msgpackParser,
-                transports: ['polling', 'websocket'],
+                transports: ['polling', 'websocket'], // Start with polling for better initial connection
                 reconnection: true,
-                reconnectionAttempts: Infinity, // Keep trying to reconnect
+                reconnectionAttempts: Infinity,
                 reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                timeout: 20000,
+                reconnectionDelayMax: 10000, // Max 10 seconds between retries
+                randomizationFactor: 0.5,
+                timeout: 30000, // 30 seconds connection timeout
+                // Performance optimizations
+                forceNew: false,
+                multiplex: true,
             });
             setSocket(newSocket);
 
             const handleConnect = () => {
                 console.log("Socket connected, logging in...");
                 setIsConnected(true);
+                setReconnectAttempt(0);
                 newSocket.emit('login', user._id.toString());
             };
 
             const handleDisconnect = (reason) => {
                 console.log("Socket disconnected:", reason);
                 setIsConnected(false);
-                if (reason === "io server disconnect") {
-                    // the disconnection was initiated by the server, you need to reconnect manually
-                    newSocket.connect();
+                // Auto-reconnect for server-initiated disconnects
+                if (reason === "io server disconnect" || reason === "transport close") {
+                    setTimeout(() => {
+                        if (!newSocket.connected) {
+                            newSocket.connect();
+                        }
+                    }, 1000);
                 }
+            };
+
+            const handleReconnectAttempt = (attempt) => {
+                setReconnectAttempt(attempt);
+                console.log(`Reconnection attempt ${attempt}...`);
+            };
+
+            const handleError = (error) => {
+                console.error("Socket error:", error);
             };
 
             newSocket.on('connect', handleConnect);
             newSocket.on('disconnect', handleDisconnect);
+            newSocket.on('reconnect_attempt', handleReconnectAttempt);
+            newSocket.on('error', handleError);
 
             // Emit immediately in case already connected
             if (newSocket.connected) {
@@ -68,15 +88,14 @@ export const SocketProvider = ({ children }) => {
             });
 
             newSocket.on('receive_message', (message) => {
-                // Notifications are handled in ChatLayout to ensure we don't show notifications for the active chat
-                // and to handle decryption properly.
+                // Notifications are handled in ChatLayout
             });
-
-
 
             return () => {
                 newSocket.off('connect', handleConnect);
                 newSocket.off('disconnect', handleDisconnect);
+                newSocket.off('reconnect_attempt', handleReconnectAttempt);
+                newSocket.off('error', handleError);
                 newSocket.close();
             };
         } else {
@@ -89,7 +108,7 @@ export const SocketProvider = ({ children }) => {
     }, [user]);
 
     return (
-        <SocketContext.Provider value={{ socket, onlineUsers, isConnected }}>
+        <SocketContext.Provider value={{ socket, onlineUsers, isConnected, reconnectAttempt }}>
             {children}
         </SocketContext.Provider>
     );
