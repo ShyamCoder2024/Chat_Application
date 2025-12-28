@@ -146,6 +146,7 @@ router.get('/file/:id', async (req, res) => {
         // CORS headers for media files
         res.set('Access-Control-Allow-Origin', '*');
         res.set('Access-Control-Allow-Methods', 'GET');
+        res.set('Cross-Origin-Resource-Policy', 'cross-origin'); // CRITICAL: Allow embedding from any origin
 
         res.send(media.data);
     } catch (err) {
