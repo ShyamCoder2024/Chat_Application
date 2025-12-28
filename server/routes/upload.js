@@ -136,6 +136,9 @@ router.get('/file/:id', async (req, res) => {
         res.set('Content-Type', media.contentType);
         res.set('Content-Length', media.size);
         res.set('Content-Disposition', `inline; filename="${media.filename}"`);
+        // CORS headers for media files
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET');
 
         res.send(media.data);
     } catch (err) {
