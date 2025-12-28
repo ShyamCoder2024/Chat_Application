@@ -445,6 +445,8 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                     <form onSubmit={handleSend} className="message-form">
                         <input
                             type="file"
+                            id="file-upload"
+                            name="file-upload"
                             ref={fileInputRef}
                             style={{ display: 'none' }}
                             accept="image/*"
@@ -480,6 +482,8 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
                             ) : <Paperclip size={20} />}
                         </Button>
                         <textarea
+                            id="message-input"
+                            name="message"
                             placeholder="Type a message..."
                             value={newMessage}
                             onChange={handleInputChange}
