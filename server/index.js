@@ -28,7 +28,10 @@ const server = http.createServer(app);
 app.set('trust proxy', 1);
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // CRITICAL: Allow media files to load from different origin
+  crossOriginEmbedderPolicy: false, // Disable COEP to allow embedding resources
+}));
 app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
