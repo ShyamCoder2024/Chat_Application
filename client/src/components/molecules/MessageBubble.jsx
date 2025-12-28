@@ -29,6 +29,27 @@ const MessageBubble = ({ message, isSent }) => {
     const isBlobUrl = mediaUrl && mediaUrl.startsWith('blob:');
 
     const [imageError, setImageError] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
+    const MAX_RETRIES = 3;
+
+    // Retry image loading after delay
+    const handleImageError = (e) => {
+        console.error('Image load error:', mediaUrl, 'Attempt:', retryCount + 1);
+
+        if (!isBlobUrl && retryCount < MAX_RETRIES) {
+            // Retry after delay - backend might still be deploying
+            setTimeout(() => {
+                setRetryCount(prev => prev + 1);
+                // Force reload by appending timestamp
+                const imgElement = e.target;
+                if (imgElement && mediaUrl) {
+                    imgElement.src = `${mediaUrl}?retry=${retryCount + 1}&t=${Date.now()}`;
+                }
+            }, 2000 * (retryCount + 1)); // Progressive delay: 2s, 4s, 6s
+        } else if (!isBlobUrl) {
+            setImageError(true);
+        }
+    };
 
     return (
         <div className={`message-wrapper ${isSent ? 'sent' : 'received'}`}>
@@ -36,9 +57,17 @@ const MessageBubble = ({ message, isSent }) => {
                 <div className={`message-bubble ${message.type === 'image' ? 'image-bubble' : ''} ${message.type === 'audio' ? 'audio-bubble' : ''}`}>
                     {message.type === 'image' && mediaUrl ? (
                         imageError ? (
-                            <div className="media-error">
+                            <div className="media-error" style={{ padding: '12px', textAlign: 'center' }}>
                                 <span style={{ fontSize: '24px' }}>⚠️</span>
-                                <span style={{ fontSize: '12px', marginTop: '4px' }}>Failed to load image</span>
+                                <span style={{ fontSize: '12px', marginTop: '4px', display: 'block' }}>Image failed to load</span>
+                                <a
+                                    href={mediaUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ fontSize: '11px', color: '#4A90D9', marginTop: '8px', display: 'block' }}
+                                >
+                                    Open directly →
+                                </a>
                             </div>
                         ) : (
                             <div className="message-image-container">
@@ -49,13 +78,7 @@ const MessageBubble = ({ message, isSent }) => {
                                     loading="lazy"
                                     style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', cursor: 'pointer', minHeight: '100px', backgroundColor: '#f0f0f0' }}
                                     onClick={() => window.open(mediaUrl, '_blank')}
-                                    onError={(e) => {
-                                        console.error('Image load error:', mediaUrl, e.target.src);
-                                        // Only set error if not a blob URL (blob URLs can fail on re-render)
-                                        if (!isBlobUrl) {
-                                            setImageError(true);
-                                        }
-                                    }}
+                                    onError={handleImageError}
                                 />
                                 {message.status === 'uploading' && message.uploadProgress !== undefined && (
                                     <div style={{
