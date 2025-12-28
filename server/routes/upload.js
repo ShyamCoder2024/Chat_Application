@@ -125,16 +125,23 @@ router.get('/file/:id', async (req, res) => {
             return res.status(400).json({ error: 'Invalid file ID' });
         }
 
-        const media = await Media.findById(req.params.id).lean();
+        // Do NOT use .lean() here - we need the actual Buffer from Mongoose
+        const media = await Media.findById(req.params.id);
 
         if (!media) {
             return res.status(404).json({ error: 'File not found' });
         }
 
+        // Verify we have data
+        if (!media.data) {
+            console.error('Media found but no data:', req.params.id);
+            return res.status(404).json({ error: 'File data not found' });
+        }
+
         // Set cache headers for better performance
         res.set('Cache-Control', 'public, max-age=31536000'); // 1 year (files don't change)
         res.set('Content-Type', media.contentType);
-        res.set('Content-Length', media.size);
+        res.set('Content-Length', media.data.length);
         res.set('Content-Disposition', `inline; filename="${media.filename}"`);
         // CORS headers for media files
         res.set('Access-Control-Allow-Origin', '*');
