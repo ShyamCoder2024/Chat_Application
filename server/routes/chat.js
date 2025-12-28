@@ -95,7 +95,23 @@ router.get('/:userId', async (req, res) => {
             }
         }
 
-        res.json(uniqueChats);
+        // Check if lastMessage still exists, clear stale previews
+        const Message = require('../models/Message');
+        const updatedChats = await Promise.all(uniqueChats.map(async (chat) => {
+            if (chat.lastMessage && chat.lastMessage.content) {
+                // Check if any messages exist for this chat
+                const messageExists = await Message.findOne({ chatId: chat._id }).lean();
+                if (!messageExists) {
+                    // Clear stale lastMessage - messages were auto-deleted
+                    chat.lastMessage = null;
+                    // Also update in database (fire and forget)
+                    Chat.findByIdAndUpdate(chat._id, { lastMessage: null }).catch(() => { });
+                }
+            }
+            return chat;
+        }));
+
+        res.json(updatedChats);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
