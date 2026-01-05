@@ -28,4 +28,4 @@ const Header = ({ title, subtitle, onBack, actions, avatar }) => {
     );
 };
 
-export default Header;
+export default React.memo(Header);

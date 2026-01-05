@@ -1,5 +1,5 @@
 // MeetPune Service Worker - Provides offline caching and background sync
-const CACHE_NAME = 'meetpune-cache-v2';
+const CACHE_NAME = 'meetpune-cache-v3';
 const STATIC_ASSETS = [
     '/',
     '/manifest.json',

@@ -212,4 +212,4 @@ const ProfileSection = ({ user, onSave, onLogout, onBack, onResetKeys }) => {
     );
 };
 
-export default ProfileSection;
+export default React.memo(ProfileSection);
