@@ -39,7 +39,7 @@ const ChatLayout = () => {
 
     const [isChatsLoading, setIsChatsLoading] = useState(true);
 
-    // Request Notification Permission
+    // Request Notification Permission and handle badge
     useEffect(() => {
         if ('Notification' in window) {
             if (Notification.permission === 'default') {
@@ -47,6 +47,16 @@ const ChatLayout = () => {
                 Notification.requestPermission().catch(console.error);
             }
         }
+
+        // Clear badge when app becomes visible
+        const handleVisibilityChange = () => {
+            if (!document.hidden && 'clearAppBadge' in navigator) {
+                navigator.clearAppBadge().catch(console.error);
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
     // Fetch Chats
@@ -383,14 +393,36 @@ const ChatLayout = () => {
                         notifContent = message.content;
                     }
 
-                    const notification = new Notification('New Message', {
+                    // Get sender name from chats list
+                    const senderChat = chatsRef.current.find(c => c.id === message.chatId);
+                    const senderName = senderChat?.name || 'Someone';
+
+                    // Calculate unread count for badge
+                    const totalUnread = chatsRef.current.reduce((sum, c) => sum + (c.unreadCount || 0), 0) + 1;
+
+                    const notification = new Notification(senderName, {
                         body: notifContent,
-                        icon: '/favicon.png'
+                        icon: senderChat?.avatar || '/logo192.png',
+                        badge: '/favicon.png',
+                        tag: `chat-${message.chatId}`, // Group notifications by chat
+                        renotify: true, // Play sound even if tag exists
+                        silent: false, // Use system default notification sound
+                        requireInteraction: false,
+                        data: { chatId: message.chatId, messageId: message._id }
                     });
+
+                    // Update PWA badge count if supported
+                    if ('setAppBadge' in navigator) {
+                        navigator.setAppBadge(totalUnread).catch(console.error);
+                    }
 
                     notification.onclick = () => {
                         window.focus();
-                        // Ideally navigate to the chat here
+                        // Navigate to the specific chat
+                        const targetChat = chatsRef.current.find(c => c.id === message.chatId);
+                        if (targetChat) {
+                            handleSelectChat(targetChat);
+                        }
                     };
                 }
             }

@@ -111,7 +111,7 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// Handle push notifications (for future use)
+// Handle push notifications
 self.addEventListener('push', (event) => {
     const data = event.data?.json() || {};
     const title = data.title || 'MeetPune';
@@ -120,6 +120,9 @@ self.addEventListener('push', (event) => {
         icon: '/logo192.png',
         badge: '/favicon.png',
         vibrate: [100, 50, 100],
+        tag: data.chatId ? `chat-${data.chatId}` : 'default',
+        renotify: true, // Play sound even if same tag
+        silent: false,  // Use system default notification sound
         data: data,
     };
 
