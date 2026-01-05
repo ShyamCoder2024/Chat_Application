@@ -117,12 +117,11 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
     }, [messages, pendingUploads]);
 
     // SCROLL TO BOTTOM ON INITIAL LOAD AND WHEN MESSAGES CHANGE
+    // Single RAF-based scroll for WhatsApp-like smoothness (no jitter)
     useEffect(() => {
-        scrollToBottom();
-        // Multiple attempts for mobile reliability
-        setTimeout(scrollToBottom, 50);
-        setTimeout(scrollToBottom, 150);
-        setTimeout(scrollToBottom, 300);
+        requestAnimationFrame(() => {
+            scrollToBottom();
+        });
     }, [processedMessages.length, chat.id]);
 
     // SCROLL TO BOTTOM ON KEYBOARD OPEN
@@ -131,10 +130,8 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
 
         const handleResize = () => {
             setViewportHeight(`${window.visualViewport.height}px`);
-            // ALWAYS scroll to bottom when keyboard opens
-            scrollToBottom();
-            setTimeout(scrollToBottom, 100);
-            setTimeout(scrollToBottom, 200);
+            // Single scroll when keyboard opens
+            requestAnimationFrame(scrollToBottom);
         };
 
         setViewportHeight(`${window.visualViewport.height}px`);
@@ -148,11 +145,9 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
         };
     }, []);
 
-    // Input focus handler for additional scroll trigger
+    // Input focus handler - single efficient scroll
     const handleInputFocus = () => {
-        setTimeout(scrollToBottom, 100);
-        setTimeout(scrollToBottom, 300);
-        setTimeout(scrollToBottom, 500);
+        requestAnimationFrame(scrollToBottom);
     };
 
     const handleFileSelect = async (e) => {
@@ -329,11 +324,7 @@ const ChatWindow = ({ chat, messages, onSendMessage, onBack, currentUserId, onCl
             setNewMessage('');
 
             // SCROLL IMMEDIATELY AFTER ADDING MESSAGE
-            requestAnimationFrame(() => {
-                scrollToBottom();
-                setTimeout(scrollToBottom, 50);
-                setTimeout(scrollToBottom, 150);
-            });
+            requestAnimationFrame(scrollToBottom);
 
             setTimeout(() => {
                 let messageToSend = messageText;

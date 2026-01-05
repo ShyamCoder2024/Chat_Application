@@ -11,6 +11,8 @@ import './Login.css';
 const ThreeBackground = lazy(() => import('../components/atoms/ThreeBackground'));
 
 const Login = () => {
+    // Skip heavy 3D on mobile for faster load (WhatsApp-like instant load)
+    const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
     const [isLogin, setIsLogin] = useState(true);
     const [isForgotPassword, setIsForgotPassword] = useState(false); // New state for Forgot Password flow
     const [step, setStep] = useState(1); // 1: Credentials, 2: Avatar
@@ -155,9 +157,11 @@ const Login = () => {
     // RENDER:
     return (
         <div className="login-page">
-            <Suspense fallback={<div className="three-background-placeholder" />}>
-                <ThreeBackground />
-            </Suspense>
+            {isDesktop && (
+                <Suspense fallback={<div className="three-background-placeholder" />}>
+                    <ThreeBackground />
+                </Suspense>
+            )}
             <div className="login-left">
                 <div className="login-card animate-pop-in">
                     <div className="login-header">

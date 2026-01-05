@@ -20,5 +20,7 @@ const chatSchema = new mongoose.Schema({
 
 // Index for finding chats by user
 chatSchema.index({ userIds: 1 });
+// Compound index for sorted queries (faster chat list loading)
+chatSchema.index({ userIds: 1, updatedAt: -1 });
 
 module.exports = mongoose.model('Chat', chatSchema);

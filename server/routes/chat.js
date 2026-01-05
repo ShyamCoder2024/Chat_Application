@@ -95,13 +95,19 @@ router.get('/:userId', async (req, res) => {
             }
         }
 
-        // Check if lastMessage still exists, clear stale previews
-        const Message = require('../models/Message');
-        const updatedChats = await Promise.all(uniqueChats.map(async (chat) => {
+        // PERFORMANCE FIX: Batch query instead of N+1 (WhatsApp-like instant load)
+        // Single aggregation to check which chats have messages
+        const chatIds = uniqueChats.map(c => c._id);
+        const chatsWithMessages = await Message.aggregate([
+            { $match: { chatId: { $in: chatIds } } },
+            { $group: { _id: '$chatId' } }
+        ]);
+        const chatsWithMessagesSet = new Set(chatsWithMessages.map(m => m._id.toString()));
+
+        const updatedChats = uniqueChats.map(chat => {
             if (chat.lastMessage && chat.lastMessage.content) {
-                // Check if any messages exist for this chat
-                const messageExists = await Message.findOne({ chatId: chat._id }).lean();
-                if (!messageExists) {
+                // Check if this chat has any messages using pre-fetched data
+                if (!chatsWithMessagesSet.has(chat._id.toString())) {
                     // Clear stale lastMessage - messages were auto-deleted
                     chat.lastMessage = null;
                     // Also update in database (fire and forget)
@@ -109,7 +115,7 @@ router.get('/:userId', async (req, res) => {
                 }
             }
             return chat;
-        }));
+        });
 
         res.json(updatedChats);
     } catch (err) {
