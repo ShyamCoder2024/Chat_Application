@@ -872,51 +872,10 @@ const ChatLayout = () => {
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <h1 className="app-title">Messages</h1>
                         {!isConnected && (
-                            <span
-                                style={{
-                                    fontSize: '12px',
-                                    color: 'orange',
-                                    fontWeight: '500',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                }}
-                                onClick={() => {
-                                    // Force socket reconnection
-                                    if (socket) {
-                                        socket.disconnect();
-                                        socket.connect();
-                                    }
-                                    fetchChats();
-                                }}
-                                title="Tap to refresh"
-                            >
-                                Connecting... <span style={{ fontSize: '10px' }}>↻</span>
-                            </span>
+                            <span style={{ fontSize: '12px', color: 'orange', fontWeight: '500' }}>Connecting...</span>
                         )}
                     </div>
                     <div className="header-actions">
-                        <Button
-                            variant="secondary"
-                            size="icon"
-                            onClick={() => {
-                                fetchChats();
-                                if (socket && !isConnected) {
-                                    socket.disconnect();
-                                    socket.connect();
-                                }
-                            }}
-                            title="Refresh"
-                            style={{ opacity: isChatsLoading ? 0.5 : 1 }}
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M21 2v6h-6"></path>
-                                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-                                <path d="M3 22v-6h6"></path>
-                                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-                            </svg>
-                        </Button>
                         <ThemeToggle />
                         <Button variant="secondary" size="icon" onClick={handleMyProfileClick} title="My Profile">
                             <UserIcon size={24} />
